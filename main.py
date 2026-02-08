@@ -23,8 +23,8 @@ GRAVITY = 800
 
 CENTRAL_GRAVITY_FORCE_1 =  2e8
 CENTRAL_GRAVITY_FORCE_2 = 32e8
-ANGULAR_VELOCITY = 0*0.7
-
+ANGULAR_VELOCITY = 1*0.5
+SPACECRAFT_STABILIZATION = False
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QRadialGradient, QBrush, QPen, QColor, QCursor
@@ -50,7 +50,7 @@ class USpace(munqy.MQSpace):
         self.collision_handler1 = None
         super().__init__()
         self.counter = None
-        self.display_help = True
+        self.display_help = False
         self.label = QLabel(self.main_view)
         self.label.setStyleSheet("QLabel { font-size: 80px; color : white; }")
         # self.label.setText(256*"X")
@@ -65,7 +65,16 @@ class USpace(munqy.MQSpace):
         """
         if len(sys.argv) >= 2:
             world_arg = sys.argv[1]
-            if world_arg == "1":
+            if world_arg == "0":
+                r = 400
+                x = self.add_polygon_item(self.get_cursor_position(), 0., vertices=((0, 0), (r, 0), (r, r),
+                                                                                (r//2, r), (r//2, r//2), (0, r//2)),
+                                      velocity=(0, 0), density=1.25e11, brush=self.brush3)
+                x._set_position((0, -650))
+                x = self.add_polygon_item(self.get_cursor_position(), 0., vertices=((0, 0), (r, 0), (r, r)),
+                                      velocity=(0, 0), density=1.25e11, brush=self.brush3)
+                x._set_position((0, -150))
+            elif world_arg == "1":
                 self.gravity = (0,GRAVITY)
                 self.damping = DAMPING
                 W = 1800
@@ -162,6 +171,18 @@ class USpace(munqy.MQSpace):
                 self.add_item(central_item)
                 self.set_central_item(central_item)
                 self.gravity = (0, GRAVITY)
+            elif world_arg == "6":
+                brush1 = QBrush(QColor(30, 30, 55))
+                n = 360
+                k = 2*pi / n
+                r1 = 2*WORLD2_RADIUS
+                r2 = r1 - 500
+                ring_vertices = tuple((-r1 * sin(k * t), r1 * cos(k * t)) for t in range(n)) \
+                              + tuple((-r2 * sin(k * t), r2 * cos(k * t)) for t in range(n-1, -1, -1))
+                ring_item = self.add_polygon_item((0., 0.), 0., ring_vertices, angular_velocity=ANGULAR_VELOCITY,
+                                                  density=1e13, brush=brush1, elasticity=0.1, friction=1.4)
+                self.add_item(ring_item)
+                self.set_central_item(ring_item)
         if world_arg == "P3":
             munqy.SIMULATION_TIME_STEP = 2e-3  # in sec
             munqy.HIDE_CURSOR = True
@@ -184,7 +205,7 @@ class USpace(munqy.MQSpace):
                                                   velocity=(0., 0.), angular_velocity=0.0)
         self.add_item(spacecraft_item)
         spacecraft_item.center_of_gravity = (0, 0)
-        spacecraft_item.moment = 10.0 * spacecraft_item.moment
+        #spacecraft_item.moment = 100.0 * spacecraft_item.moment
         if world_arg == "P3":
             self.set_player_item(spacecraft_item_csc)
         else:
@@ -232,19 +253,19 @@ class USpace(munqy.MQSpace):
                 self.tracing_item = item
         super().set_player_item(item)
         actions_by_single_key = {
-            (Qt.NoModifier, Qt.Key_T)            : (self.toggle_trace, (item,),       "toggle trace"                                       ),
+            (Qt.NoModifier, Qt.Key_T)            : (self.toggle_trace, (item,), "toggle trace"                 ),
         }
         actions_by_repeat_key = {
-            (Qt.NoModifier, Qt.Key_Up)           : (item.thrust_up, (),               "trust up / across-track"                            ),
-            (Qt.NoModifier, Qt.Key_Down)         : (item.thrust_down, (),             "trust down / across-track"                          ),
-            (Qt.NoModifier, Qt.Key_Left)         : (item.thrust_left,(),              "trust left / along-track"                           ),
-            (Qt.NoModifier, Qt.Key_Right)        : (item.thrust_right, (),            "trust right / along-track"                          ),
-            (Qt.ControlModifier, Qt.Key_Up)      : (item.thrust_up, (),               "trust up / across-track"                            ),
-            (Qt.ControlModifier, Qt.Key_Down)    : (item.thrust_down, (),             "trust down / across-track"                          ),
-            (Qt.ControlModifier, Qt.Key_Left)    : (item.thrust_left, (),             "trust left / along-track"                           ),
-            (Qt.ControlModifier, Qt.Key_Right)   : (item.thrust_right, (),            "trust right / along-track"                          ),
-            (Qt.ControlModifier, Qt.Key_Control) : (item.fire, (),                    "fire"                                               ),
-            (Qt.NoModifier, Qt.Key_Space)        : (item.drop_bomb, (),               "drop bomb"                                          ),
+            (Qt.NoModifier, Qt.Key_Up)           : (item.thrust_up, (),          "trust up / across-track"     ),
+            (Qt.NoModifier, Qt.Key_Down)         : (item.thrust_down, (),        "trust down / across-track"   ),
+            (Qt.NoModifier, Qt.Key_Left)         : (item.thrust_left,(),         "trust left / along-track"    ),
+            (Qt.NoModifier, Qt.Key_Right)        : (item.thrust_right, (),       "trust right / along-track"   ),
+            (Qt.ControlModifier, Qt.Key_Up)      : (item.thrust_up, (),          "trust up / across-track"     ),
+            (Qt.ControlModifier, Qt.Key_Down)    : (item.thrust_down, (),        "trust down / across-track"   ),
+            (Qt.ControlModifier, Qt.Key_Left)    : (item.thrust_left, (),        "trust left / along-track"    ),
+            (Qt.ControlModifier, Qt.Key_Right)   : (item.thrust_right, (),       "trust right / along-track"   ),
+            (Qt.ControlModifier, Qt.Key_Control) : (item.fire, (),               "fire"                        ),
+            (Qt.NoModifier, Qt.Key_Space)        : (item.drop_bomb, (),          "drop bomb"                   ),
         }
         self.add_key_mapping(actions_by_single_key, actions_by_repeat_key)
 
@@ -297,18 +318,18 @@ class USpace(munqy.MQSpace):
                             brush=self.brush3,duration_s=8,with_fading=True)
         
     def drop_item4(self):
-        self.add_rect_item(self.get_cursor_position(),0.,size=(uniform(40,100),uniform(40,100)),
-                            #body_type = munqy.KINEMATIC, is_airy = True,
-                            velocity=(uniform(-200,200),uniform(-200,200)),
-                            angular_velocity=uniform(-2,2),
-                            density=1.25e10,
-                            brush=self.brush3,duration_s=8,with_fading=True)
+        # self.add_rect_item(self.get_cursor_position(),0.,size=(uniform(40,100),uniform(40,100)),
+        #                     #body_type = munqy.KINEMATIC, is_airy = True,
+        #                     velocity=(uniform(-200,200),uniform(-200,200)),
+        #                     angular_velocity=uniform(-2,2),
+        #                     density=1.25e10,
+        #                     brush=self.brush3,duration_s=8,with_fading=True)
         # r.velocity = (uniform(-200,200),uniform(-200,200))
         # self.kinematic_items.append(r)
         # self.add_segment_item((position.x(),position.y()),0.,size=(uniform(4,16),uniform(4,16)),
         #                       velocity=(uniform(-200,200),uniform(-200,200)),density=1.25e10,color=self.color3)
-        # self.add_polygon_item((position.x(),position.y()),0.,vertices=((-4,-4),(+4,-4),(-4,+4)),
-        #                       velocity=(uniform(-200,200),uniform(-200,200)),density=1.25e10,brush=self.brush3)
+        self.add_polygon_item(self.get_cursor_position(), 0., vertices=((0, 0), (+40, 0), (+40, +40),), # (+20, +40), (+20, +20), (0, +20)),
+                              velocity=(uniform(-200,200),uniform(-200,200)),density=1.25e10,brush=self.brush3)
 
     def separate_spacecrafts(self):
         if self.spacecraft_item is not None and isinstance(self.spacecraft_item, munqy.CompoundItemDecomposable):
@@ -350,10 +371,11 @@ class USpace(munqy.MQSpace):
                 self.counter += 1
         self.just_pressed_key = None
         self.keyboard_modifiers = 0
-        if self.spacecraft_item is not None:
-            self.spacecraft_item.stabilize()
-        if self.spacecraft_item_osc is not None:
-            self.spacecraft_item_osc.stabilize()
+        if SPACECRAFT_STABILIZATION:
+            if self.spacecraft_item is not None:
+                self.spacecraft_item.stabilize()
+            if self.spacecraft_item_osc is not None:
+                self.spacecraft_item_osc.stabilize()
 
     """
     def do_timer_event(self):
@@ -491,7 +513,7 @@ class SpacecraftItem(AbstractSpacecraftItem):
                                           pen=QPen(Qt.darkGray, 1),
                                           density=1e12, elasticity=0.45, friction=0.3, **kwargs)
         # text_shaqe = munqy.TextShaqe("munqy",font_size=4, font_family="Bauhaus 93", offset=(0,2),
-        text_shaqe = munqy.TextShaqe("munqy", font_size=3, offset=(-4, -2.5),
+        text_shaqe = munqy.TextShaqe("Ω", font_size=5, offset=(-4, -2.5),
                                      brush=QBrush(Qt.white),
                                      is_airy=True)
         line_shaqe = munqy.SegmentShaqe((15, 6), offset=(-2, -2), color_name=Qt.darkGray,

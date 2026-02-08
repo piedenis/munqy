@@ -182,12 +182,11 @@ class Shaqe:
         self.set_pen(pen)
         self.set_brush(brush)
         self.shapes = tuple(shapes)
-        if len(shapes) == 1:
-            shape = shapes[0]
-            density = kwargs.pop("density", None)
-            elasticity = kwargs.pop("elasticity", None)
-            friction = kwargs.pop("friction", None)
-            collision_type = kwargs.pop("collision_type" ,None)
+        density = kwargs.pop("density", None)
+        elasticity = kwargs.pop("elasticity", None)
+        friction = kwargs.pop("friction", None)
+        collision_type = kwargs.pop("collision_type", None)
+        for shape in shapes:
             if density is not None:
                 shape.density = density
             if elasticity is not None:
@@ -248,7 +247,7 @@ class RectShaqe(Shaqe):
         shapes = (pymunk.Poly(None, vertices),) if not is_airy else ()
         pen = kwargs.get("pen")
         d = 0.0 if pen is None or pen.style() == Qt.NoPen or WIREFRAME_MODE else pen.widthF()
-        Shaqe.__init__(self, QGraphicsRectItem(rx-w2+d/2.0,ry-h2+d/2.0, w-d, h-d),
+        Shaqe.__init__(self, QGraphicsRectItem(rx-w2+d/2.0, ry-h2+d/2.0, w-d, h-d),
                        *shapes, **kwargs)
 
 
@@ -265,7 +264,7 @@ class TextShaqe(Shaqe):
     """ TextShaqe is a Shaqe subclass for defining a text item with a given font
     """
 
-    def __init__(self, text, font_size=None, font_family=None, offset=(0.0,0.0), is_airy=False, **kwargs):
+    def __init__(self, text, font_size=None, font_family=None, offset=(0.0, 0.0), is_airy=False, **kwargs):
         qg_text_item = QGraphicsSimpleTextItem(text)
         if font_size is not None:
             font = qg_text_item.font()
@@ -276,11 +275,11 @@ class TextShaqe(Shaqe):
             font.setFamily(font_family)
             qg_text_item.setFont(font)
         br = qg_text_item.sceneBoundingRect()
-        (self.width,self.height) = (br.width(),br.height())
+        (self.width,self.height) = (br.width(), br.height())
         w2 = self.width / 2.0
         h2 = self.height / 2.0
         (rx,ry) = offset
-        qg_text_item.setPos(rx-w2,ry-h2)
+        qg_text_item.setPos(rx-w2, ry-h2)
         # qg_text_item.setTransform(QTransform().translate(rx-w2,ry-h2))
         vertices = ((rx-w2,ry-h2), (rx-w2,ry+h2), (rx+w2,ry+h2), (rx+w2,ry-h2))
         shapes = (pymunk.Poly(None, vertices),) if not is_airy else ()
@@ -293,8 +292,8 @@ class TextItem(Item):
 
     __slots__ = ("center_pos",)
 
-    def __init__(self, position,angle, text,font_size=None, font_family=None, **kwargs):
-        text_shaqe = TextShaqe(text,font_size,font_family,**kwargs)
+    def __init__(self, position,angle, text, font_size=None, font_family=None, **kwargs):
+        text_shaqe = TextShaqe(text, font_size, font_family, **kwargs)
         Item.__init__(self,position, angle, text_shaqe, **kwargs)
         self.center_pos = (text_shaqe.width/2.0, text_shaqe.height/2.0)
         
@@ -314,20 +313,15 @@ class PolygonShaqe(Shaqe):
         vertices = list(vertices)
         if vertices[0] != vertices[-1]:
             vertices.append(vertices[0])
-        convex_vertices = pymunk.autogeometry.convex_decomposition(vertices,tolerance=0.0)
+        vertices = tuple(vertices)
+        convex_polygons = pymunk.autogeometry.convex_decomposition(vertices, tolerance=0.0)
         if is_airy:
             shapes = ()
         else:
-            shapes = []
-            for vertices2 in convex_vertices:
-                shapes.append(pymunk.Poly(None, vertices=vertices2))
-        # if vertices[0] == vertices[-1]:
-        #    del vertices[-1]
-        qg_item_group = QGraphicsItemGroup()
-        for vertices2 in convex_vertices:
-            qg_item_group.addToGroup(QGraphicsPolygonItem(QPolygonF(tuple(QPointF(*xy) for xy in vertices2))))
-        Shaqe.__init__(self, qg_item_group, *shapes, **kwargs)
-    
+            shapes = tuple(pymunk.Poly(None, vertices=vertices2) for vertices2 in convex_polygons)
+        qg_polygon_item = QGraphicsPolygonItem(QPolygonF(tuple(QPointF(x, y) for (x, y) in vertices)))
+        Shaqe.__init__(self, qg_polygon_item, *shapes, **kwargs)
+
     @staticmethod
     def build_from_matrix(matrix,char, block_size, soft=False, **kwargs):
         def sample_func(point):
@@ -339,27 +333,28 @@ class PolygonShaqe(Shaqe):
         matrix = (w*char2,) + tuple(char2+line+char2 for line in matrix) + (w*char2,)
         polygon_shaqes = []
         march_func = pymunk.autogeometry.march_soft if soft else pymunk.autogeometry.march_hard
-        for s in march_func(pymunk.BB(0,0,w-1,h-1),w,h,0.5,sample_func):
-            vertices = ((block_size*v.x,block_size*v.y) for v in s)
-            polygon_shaqes.append(PolygonShaqe(vertices,**kwargs))
+        for s in march_func(pymunk.BB(0, 0, w-1, h-1), w, h, 0.5, sample_func):
+            vertices = ((block_size*v.x, block_size*v.y) for v in s)
+            polygon_shaqes.append(PolygonShaqe(vertices, **kwargs))
         return polygon_shaqes
 
-    def set_pen(self,pen):
-        if WIREFRAME_MODE:
-            pen = Shaqe.WIREFRAME_PEN
-        elif pen is None:
-            pen = Shaqe.NO_PEN
-        for child_qg_item in self.qg_item.childItems():
-            child_qg_item.setPen(pen)
-
-    def set_brush(self,brush):
-        if WIREFRAME_MODE:
-            brush = Qt.black if WIREFRAME_OPAQUE else Shaqe.NO_BRUSH
-        elif brush is None:
-            brush = Shaqe.NO_BRUSH
-        for child_qg_item in self.qg_item.childItems():
-            child_qg_item.setBrush(brush)
-            
+    # TODO required for QGraphicsGroup NOK should be put on CompoundShaqe
+    # def set_pen(self, pen):
+    #     if WIREFRAME_MODE:
+    #         pen = Shaqe.WIREFRAME_PEN
+    #     elif pen is None:
+    #         pen = Shaqe.NO_PEN
+    #     for child_qg_item in self.qg_item.childItems():
+    #         child_qg_item.setPen(pen)
+    #
+    # def set_brush(self,brush):
+    #     if WIREFRAME_MODE:
+    #         brush = Qt.black if WIREFRAME_OPAQUE else Shaqe.NO_BRUSH
+    #     elif brush is None:
+    #         brush = Shaqe.NO_BRUSH
+    #     for child_qg_item in self.qg_item.childItems():
+    #         child_qg_item.setBrush(brush)
+    #
 
 class PolygonItem(Item):
     """ PolygonItem is an Item subclass for defining a polygon item with given vertices
@@ -377,7 +372,7 @@ class QGraphicsArcItem(QGraphicsEllipseItem):
     def paint (self, painter, option, widget):
         painter.setPen(self.pen())
         # painter->setBrush(brush());
-        painter.drawArc(self.rect(), self.startAngle(), self.spanAngle());
+        painter.drawArc(self.rect(), self.startAngle(), self.spanAngle())
 
 
 class SegmentShaqe(Shaqe):
@@ -414,8 +409,7 @@ class SegmentShaqe(Shaqe):
             qg_item.addToGroup(right_arc)
         else:
             qg_item = QGraphicsLineItem(cx-w2, cy, cx+w2, cy)
-        Shaqe.__init__(self,qg_item,
-                       *shapes,pen=pen,**kwargs)
+        Shaqe.__init__(self, qg_item, *shapes, pen=pen, **kwargs)
 
     def set_pen(self,pen):
         if WIREFRAME_MODE:
@@ -669,8 +663,8 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         self.items_to_remove.clear()
         self.time += self.dt_s
         # pymunk simulation
-        #self.step(self.dt_s)
-        self.step(SIMULATION_TIME_STEP)
+        self.step(self.dt_s)
+        #self.step(SIMULATION_TIME_STEP)
         for view in self.views():
             view.do_timer_event()
 
@@ -760,7 +754,12 @@ class MQSpace(pymunk.Space, QGraphicsScene):
             func(*args)
 
     def get_cursor_position(self):
-        position = self.main_view.mapToScene(QCursor().pos())
+        #position = self.main_view.mapFromGlobal(QCursor().pos())
+        #position = self.main_view.mapToScene(QCursor().pos())
+        #position = self.main_view.mapToScene(QCursor().pos().x(), -QCursor().pos().y())
+        #position = self.main_view.mapToScene(self.main_view.viewport().mapFromGlobal(QCursor().pos()))
+        position = self.main_view.mapToScene(self.main_view.mapFromGlobal(QCursor().pos()))
+        #position = self.main_view.viewport().mapToGlobal(QCursor().pos())
         return (position.x(), position.y())
 
     def add_item(self, item):
@@ -894,7 +893,7 @@ class View(QGraphicsView):
 
     def do_timer_event(self):
         if self.view_center_item is not None:
-            self.center_on(self.view_center_item,self.view_center_with_rotation)
+            self.center_on(self.view_center_item, self.view_center_with_rotation)
 
     def center_on_item(self, item, with_rotation, permanent):
         if permanent:
@@ -915,7 +914,8 @@ class View(QGraphicsView):
                 rotation = -item.qg_item.rotation()
                 self.rotate(-self.rotation+rotation)
                 self.rotation = rotation
-            self.centerOn(item.qg_item)
+            # TODO
+            #self.centerOn(item.qg_item)
 
     def recenter(self, with_rotation):
         if space.central_item is not None:
@@ -924,7 +924,7 @@ class View(QGraphicsView):
     def wheelEvent(self,event):
         self.zoom(event.angleDelta().y()/100.0)
 
-    def zoom(self,f):
+    def zoom(self, f):
         pos_view1 = self.mapFromGlobal(QCursor.pos())
         pos_scene = self.mapToScene(pos_view1)
         if f < 0.0:
