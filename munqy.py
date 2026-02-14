@@ -1,7 +1,7 @@
-#--------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
 #   Munqy, a 2D engine using Python, pymunk and PyQt5
 #   (c) Pierre Denis 2021-2025
-#--------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
 
 import sys
 from math import degrees, hypot
@@ -11,10 +11,17 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 import pymunk
 import pymunk.autogeometry
+# try:
+#     from winsound import Beep, PlaySound, SND_ASYNC, SND_FILENAME
+#     import threading
+#     import queue
+# except ImportError:
+#     Beep = None
+from sound import Sound
 
-SIMULATION_TIME_STEP = 5e-3 # in sec
-TIMER_ELAPSE = 10e-3 # in sec
-DELTA_ELAPSE =  1e-3 # in sec
+SIMULATION_TIME_STEP = 5e-3  # in sec
+TIMER_ELAPSE = 10e-3  # in sec
+DELTA_ELAPSE = 1e-3  # in sec
 WIREFRAME_MODE = False
 WIREFRAME_OPAQUE = False
 TRACE_LENGTH = 10
@@ -35,7 +42,7 @@ class Item(pymunk.Body):
         updated according to the shape's.
     """
 
-    __slots__ = ('shaqe', 'qg_item', 'child_shapes', 'is_alive', 'fading_time', 'end_time')
+    __slots__ = ('shaqe', 'qg_item', 'child_shapes', 'is_alive', 'fading_time', 'end_time', 'collision_function')
 
     transient_items = []
 
@@ -47,22 +54,22 @@ class Item(pymunk.Body):
 
     def do_fading(self):
         if self.end_time is not None:
-            self.qg_item.setOpacity((max(0.0,self.end_time-space.time))/(self.end_time-self.fading_time))
-  
+            self.qg_item.setOpacity((max(0.0, self.end_time - space.time)) / (self.end_time - self.fading_time))
+
     def __init__(self, position, angle, shaqe, **kwargs):
         mass = kwargs.pop("mass", 0.0)
-        moment = kwargs.pop("moment", 0.0)
+        moment = kwargs.pop("moment", float('inf'))
         body_type = kwargs.pop("body_type", DYNAMIC)
         velocity = kwargs.pop("velocity", None)
         angular_velocity = kwargs.pop("angular_velocity", None)
         if body_type is STATIC:
             assert velocity is None and angular_velocity is None
-        pymunk.Body.__init__(self, mass,moment, body_type)
+        pymunk.Body.__init__(self, mass, moment, body_type)
         # self.is_airy = kwargs.pop("is_airy", False)
         if body_type is STATIC:
             # TODO
             self.body = space.static_body
-        else:            
+        else:
             self.position_func = self.__class__._position_func
             if velocity is not None:
                 self.velocity = velocity
@@ -91,14 +98,15 @@ class Item(pymunk.Body):
         self.do_initialize()
         if body_type == KINEMATIC:
             space.kinematic_items.append(self)
+        self.collision_function = None
 
-    def set_body(self,body):
+    def set_body(self, body):
         for child_shape in self.child_shapes:
             child_shape.body = body
             child_shape.collision_type = id(body.__class__)
 
-    def _position_func(self,dt):
-        Item.update_position(self,dt)
+    def _position_func(self, dt):
+        Item.update_position(self, dt)
         self.qg_item.setPos(*self.position)
         self.qg_item.setRotation(degrees(self.angle))
 
@@ -107,15 +115,15 @@ class Item(pymunk.Body):
         (cx, cy) = space.attractive_item.position
         dx = cx - x
         dy = cy - y
-        d3 = hypot(dx,dy)**3
+        d3 = hypot(dx, dy) ** 3
         if d3 > 0.0:
             # Newton's law of gravitation
-            f = space.attractive_item_force / hypot(dx,dy)**3
+            f = space.attractive_item_force / hypot(dx, dy) ** 3
             # shell theorem: if the body is inside the sphere (c < 1), then only the inner sphere's mass shall be considered
             c = d3 / space.attractive_item_radius ** 3
             if c < 1:
                 f *= c
-            pymunk.Body.update_velocity(self, (f*dx, f*dy), damping, dt)
+            pymunk.Body.update_velocity(self, (f * dx, f * dy), damping, dt)
 
     @staticmethod
     def remove_transient_items():
@@ -128,20 +136,20 @@ class Item(pymunk.Body):
                 first_kept_idx = idx
                 break
         if first_kept_idx > 0:
-            for (_,items) in islice(Item.transient_items, first_kept_idx):
+            for (_, items) in islice(Item.transient_items, first_kept_idx):
                 for item in items:
                     space.remove_item(item)
             del Item.transient_items[:first_kept_idx]
         for (_, items) in Item.transient_items:
             for item in items:
-                if item.with_fading:                
+                if item.with_fading:
                     item.do_fading()
 
     def set_transient(self, duration_s, with_fading=False):
         Item.set_all_transient((self,), duration_s, with_fading)
 
     @staticmethod
-    def set_all_transient(items,duration_s, with_fading=False):
+    def set_all_transient(items, duration_s, with_fading=False):
         fading_time = space.time
         end_time = fading_time + duration_s
         for item in items:
@@ -153,7 +161,7 @@ class Item(pymunk.Body):
             if end_time <= t:
                 insert_idx = idx
                 break
-        Item.transient_items.insert(insert_idx,(end_time,items))
+        Item.transient_items.insert(insert_idx, (end_time, items))
 
     def declare_kinematic(self):
         space.items_to_set_kinematic.add(self)
@@ -163,11 +171,11 @@ class Item(pymunk.Body):
 
 
 class Shaqe:
-    """ Shake is an abstract class. Each subclass allows to define some Item subclass through
+    """ Shake is an abstract class. Each subclass allows defining some Item subclass through
         - the item's shapes (used in particular by pymunk for collision handling),
         - the item's graphical representation, as a PyQt QGraphicsItem
     """
-    
+
     __slots__ = ("qg_item", "shapes")
 
     NO_PEN = QPen(Qt.NoPen)
@@ -196,30 +204,30 @@ class Shaqe:
             if collision_type is not None:
                 shape.collision_type = collision_type
 
-    def set_pen(self,pen):
+    def set_pen(self, pen):
         if WIREFRAME_MODE:
             pen = Shaqe.WIREFRAME_PEN
         elif pen is None:
             pen = Shaqe.NO_PEN
-        self.qg_item.setPen(pen)    
+        self.qg_item.setPen(pen)
 
-    def set_brush(self,brush):
+    def set_brush(self, brush):
         if WIREFRAME_MODE:
             brush = Qt.black if WIREFRAME_OPAQUE else Shaqe.NO_BRUSH
         elif brush is None:
             brush = Shaqe.NO_BRUSH
-        self.qg_item.setBrush(brush)    
+        self.qg_item.setBrush(brush)
 
 
 class CircleShaqe(Shaqe):
     """ CircleShaqe is a Shaqe subclass for defining a disk item with a given radius
     """
-    
+
     def __init__(self, radius, offset=(0.0, 0.0), is_airy=False, **kwargs):
         shapes = (pymunk.Circle(None, radius, offset),) if not is_airy else ()
-        (rx,ry) = offset
+        (rx, ry) = offset
         Shaqe.__init__(self,
-                       QGraphicsEllipseItem(rx-radius, ry-radius, 2*radius, 2*radius),
+                       QGraphicsEllipseItem(rx - radius, ry - radius, 2 * radius, 2 * radius),
                        *shapes,
                        **kwargs)
 
@@ -242,12 +250,12 @@ class RectShaqe(Shaqe):
         w2 = w / 2.0
         h2 = h / 2.0
         (rx, ry) = offset
-        vertices = ((rx-w2,ry-h2), (rx-w2,ry+h2), (rx+w2,ry+h2), (rx+w2,ry-h2)) 
+        vertices = ((rx - w2, ry - h2), (rx - w2, ry + h2), (rx + w2, ry + h2), (rx + w2, ry - h2))
         # shapes = (pymunk.Poly.create_box(None,size=size),) if not is_airy else ()
         shapes = (pymunk.Poly(None, vertices),) if not is_airy else ()
         pen = kwargs.get("pen")
         d = 0.0 if pen is None or pen.style() == Qt.NoPen or WIREFRAME_MODE else pen.widthF()
-        Shaqe.__init__(self, QGraphicsRectItem(rx-w2+d/2.0, ry-h2+d/2.0, w-d, h-d),
+        Shaqe.__init__(self, QGraphicsRectItem(rx - w2 + d / 2.0, ry - h2 + d / 2.0, w - d, h - d),
                        *shapes, **kwargs)
 
 
@@ -275,13 +283,13 @@ class TextShaqe(Shaqe):
             font.setFamily(font_family)
             qg_text_item.setFont(font)
         br = qg_text_item.sceneBoundingRect()
-        (self.width,self.height) = (br.width(), br.height())
+        (self.width, self.height) = (br.width(), br.height())
         w2 = self.width / 2.0
         h2 = self.height / 2.0
-        (rx,ry) = offset
-        qg_text_item.setPos(rx-w2, ry-h2)
+        (rx, ry) = offset
+        qg_text_item.setPos(rx - w2, ry - h2)
         # qg_text_item.setTransform(QTransform().translate(rx-w2,ry-h2))
-        vertices = ((rx-w2,ry-h2), (rx-w2,ry+h2), (rx+w2,ry+h2), (rx+w2,ry-h2))
+        vertices = ((rx - w2, ry - h2), (rx - w2, ry + h2), (rx + w2, ry + h2), (rx + w2, ry - h2))
         shapes = (pymunk.Poly(None, vertices),) if not is_airy else ()
         Shaqe.__init__(self, qg_text_item, *shapes, **kwargs)
 
@@ -292,17 +300,17 @@ class TextItem(Item):
 
     __slots__ = ("center_pos",)
 
-    def __init__(self, position,angle, text, font_size=None, font_family=None, **kwargs):
+    def __init__(self, position, angle, text, font_size=None, font_family=None, **kwargs):
         text_shaqe = TextShaqe(text, font_size, font_family, **kwargs)
-        Item.__init__(self,position, angle, text_shaqe, **kwargs)
-        self.center_pos = (text_shaqe.width/2.0, text_shaqe.height/2.0)
-        
-    def _position_func(self,dt):
-        Item.update_position(self,dt)
-        (x,y) = self.position
-        (cx,cy) = self.center_pos
+        Item.__init__(self, position, angle, text_shaqe, **kwargs)
+        self.center_pos = (text_shaqe.width / 2.0, text_shaqe.height / 2.0)
+
+    def _position_func(self, dt):
+        Item.update_position(self, dt)
+        (x, y) = self.position
+        (cx, cy) = self.center_pos
         self.qg_item.setTransform(QTransform().translate(cx, cy).rotate(degrees(self.angle)).translate(-cx, -cy))
-        self.qg_item.setPos(x-cx,y-cy)
+        self.qg_item.setPos(x - cx, y - cy)
 
 
 class PolygonShaqe(Shaqe):
@@ -314,7 +322,7 @@ class PolygonShaqe(Shaqe):
         if vertices[0] != vertices[-1]:
             vertices.append(vertices[0])
         vertices = tuple(vertices)
-        convex_polygons = pymunk.autogeometry.convex_decomposition(vertices, tolerance=0.0)
+        convex_polygons = pymunk.autogeometry.convex_decomposition(vertices, tolerance=0.1)
         if is_airy:
             shapes = ()
         else:
@@ -323,18 +331,19 @@ class PolygonShaqe(Shaqe):
         Shaqe.__init__(self, qg_polygon_item, *shapes, **kwargs)
 
     @staticmethod
-    def build_from_matrix(matrix,char, block_size, soft=False, **kwargs):
+    def build_from_matrix(matrix, char, block_size, soft=False, **kwargs):
         def sample_func(point):
             (x, y) = point
             return 1 if matrix[int(y)][int(x)] == char else 0
-        w = len(matrix[0])+2
-        h = len(matrix)+2
-        char2 = chr(ord(char)+1)
-        matrix = (w*char2,) + tuple(char2+line+char2 for line in matrix) + (w*char2,)
+
+        w = len(matrix[0]) + 2
+        h = len(matrix) + 2
+        char2 = chr(ord(char) + 1)
+        matrix = (w * char2,) + tuple(char2 + line + char2 for line in matrix) + (w * char2,)
         polygon_shaqes = []
         march_func = pymunk.autogeometry.march_soft if soft else pymunk.autogeometry.march_hard
-        for s in march_func(pymunk.BB(0, 0, w-1, h-1), w, h, 0.5, sample_func):
-            vertices = ((block_size*v.x, block_size*v.y) for v in s)
+        for s in march_func(pymunk.BB(0, 0, w - 1, h - 1), w, h, 0.5, sample_func):
+            vertices = ((block_size * v.x, block_size * v.y) for v in s)
             polygon_shaqes.append(PolygonShaqe(vertices, **kwargs))
         return polygon_shaqes
 
@@ -356,6 +365,7 @@ class PolygonShaqe(Shaqe):
     #         child_qg_item.setBrush(brush)
     #
 
+
 class PolygonItem(Item):
     """ PolygonItem is an Item subclass for defining a polygon item with given vertices
     """
@@ -369,7 +379,7 @@ class QGraphicsArcItem(QGraphicsEllipseItem):
     """ QGraphicsArcItem is a QGraphicsEllipseItem subclass for drawing an arc
     """
 
-    def paint (self, painter, option, widget):
+    def paint(self, painter, option, widget):
         painter.setPen(self.pen())
         # painter->setBrush(brush());
         painter.drawArc(self.rect(), self.startAngle(), self.spanAngle())
@@ -381,45 +391,45 @@ class SegmentShaqe(Shaqe):
 
     pen_dict = {}
 
-    def __init__(self, size, color_name, offset=(0.,0.), is_airy=False, **kwargs):
+    def __init__(self, size, color_name, offset=(0., 0.), is_airy=False, **kwargs):
         (width, height) = size
-        w2 = width/2.0
-        h2 = height/2.0
+        w2 = width / 2.0
+        h2 = height / 2.0
         pen = SegmentShaqe.pen_dict.get((color_name, height))
         if pen is None:
             pen = SegmentItem.pen_dict[(color_name, height)] = QPen(QColor(color_name), height, cap=Qt.RoundCap)
         (cx, cy) = offset
-        shapes = (pymunk.Segment(None,a=(cx-w2, cy),b=(cx+w2, cy), radius=h2),) if not is_airy else ()
+        shapes = (pymunk.Segment(None, a=(cx - w2, cy), b=(cx + w2, cy), radius=h2),) if not is_airy else ()
         if WIREFRAME_MODE:
             qg_item = QGraphicsItemGroup()
             if WIREFRAME_OPAQUE:
-                f = QGraphicsLineItem(cx-w2, cy, cx+w2, cy)
-                f.setPen(QPen(Qt.black,height,cap=Qt.RoundCap))
+                f = QGraphicsLineItem(cx - w2, cy, cx + w2, cy)
+                f.setPen(QPen(Qt.black, height, cap=Qt.RoundCap))
                 qg_item.addToGroup(f)
-            qg_item.addToGroup(QGraphicsLineItem(cx-w2, cy-h2, cx+w2, cy-h2))
-            qg_item.addToGroup(QGraphicsLineItem(cx-w2, cy+h2, cx+w2, cy+h2))
+            qg_item.addToGroup(QGraphicsLineItem(cx - w2, cy - h2, cx + w2, cy - h2))
+            qg_item.addToGroup(QGraphicsLineItem(cx - w2, cy + h2, cx + w2, cy + h2))
             # left_arc = QGraphicsEllipseItem(cx-w2-h2,cy-h2,height,height)
-            left_arc = QGraphicsArcItem(cx-w2-h2, cy-h2, height, height)
-            left_arc.setStartAngle(+90.0*16)
-            left_arc.setSpanAngle(180.0*16)
+            left_arc = QGraphicsArcItem(cx - w2 - h2, cy - h2, height, height)
+            left_arc.setStartAngle(+90.0 * 16)
+            left_arc.setSpanAngle(180.0 * 16)
             qg_item.addToGroup(left_arc)
-            right_arc = QGraphicsArcItem(cx+w2-h2, cy-h2, height, height)
-            right_arc.setStartAngle(-90.0*16)
-            right_arc.setSpanAngle(180.0*16)
+            right_arc = QGraphicsArcItem(cx + w2 - h2, cy - h2, height, height)
+            right_arc.setStartAngle(-90.0 * 16)
+            right_arc.setSpanAngle(180.0 * 16)
             qg_item.addToGroup(right_arc)
         else:
-            qg_item = QGraphicsLineItem(cx-w2, cy, cx+w2, cy)
+            qg_item = QGraphicsLineItem(cx - w2, cy, cx + w2, cy)
         Shaqe.__init__(self, qg_item, *shapes, pen=pen, **kwargs)
 
-    def set_pen(self,pen):
+    def set_pen(self, pen):
         if WIREFRAME_MODE:
             for child_qg_item in self.qg_item.childItems():
                 if child_qg_item.pen().capStyle() != Qt.RoundCap:
                     child_qg_item.setPen(Shaqe.WIREFRAME_PEN)
         else:
-            self.qg_item.setPen(pen) 
-    
-    def set_brush(self,ignored_brush):
+            self.qg_item.setPen(pen)
+
+    def set_brush(self, ignored_brush):
         pass
 
 
@@ -429,7 +439,7 @@ class SegmentItem(Item):
 
     pen_dict = {}
 
-    def __init__(self, position,angle, size, color, **kwargs):
+    def __init__(self, position, angle, size, color, **kwargs):
         Item.__init__(self, position, angle,
                       SegmentShaqe(size, color, **kwargs), **kwargs)
 
@@ -440,24 +450,24 @@ class PixmapShaqe(Shaqe):
 
     def __init__(self, pixmap_filename, rounded, is_airy=False, **kwargs):
         pixmap = QPixmap.fromImageReader(QImageReader(pixmap_filename))
-        size = (width,height) = (pixmap.width(), pixmap.height())
+        size = (width, height) = (pixmap.width(), pixmap.height())
         qg_item = QGraphicsPixmapItem(pixmap)
         qg_item.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
         w2 = width / 2.0
         h2 = height / 2.0
-        qg_item.setOffset(-w2,-h2)
+        qg_item.setOffset(-w2, -h2)
         if is_airy:
             shapes = ()
         elif rounded:
-            shapes = (pymunk.Segment(None,a=(-w2+h2,0.), b=(+w2-h2,0.), radius=h2),)
+            shapes = (pymunk.Segment(None, a=(-w2 + h2, 0.), b=(+w2 - h2, 0.), radius=h2),)
         else:
             shapes = (pymunk.Poly.create_box(None, size=size),)
-        Shaqe.__init__(self, qg_item, *shapes,**kwargs)
+        Shaqe.__init__(self, qg_item, *shapes, **kwargs)
 
-    def set_pen(self,pen):
+    def set_pen(self, pen):
         pass
 
-    def set_brush(self,brush):
+    def set_brush(self, brush):
         pass
 
 
@@ -465,8 +475,8 @@ class PixmapItem(Item):
     """ PixmapItem is an Item subclass for defining a rectangle item rendered with a given pixmap
     """
 
-    def __init__(self,position, angle, pixmap_filename, rounded,**kwargs):
-        Item.__init__(self, position,angle,
+    def __init__(self, position, angle, pixmap_filename, rounded, **kwargs):
+        Item.__init__(self, position, angle,
                       PixmapShaqe(pixmap_filename, rounded, **kwargs), **kwargs)
 
 
@@ -481,10 +491,10 @@ class CompoundShaqe(Shaqe):
             qg_item_group.addToGroup(child_shaqe.qg_item)
         if is_airy:
             shapes = iter(())
-        else: 
+        else:
             shapes = (shape for child_shaqe in child_shaqes
-                            for shape in child_shaqe.shapes)
-                            # if not child_shaqe.is_airy
+                      for shape in child_shaqe.shapes)
+            # if not child_shaqe.is_airy
         """
         if "pen" in kwargs:
             del kwargs["pen"]
@@ -493,10 +503,10 @@ class CompoundShaqe(Shaqe):
         """
         Shaqe.__init__(self, qg_item_group, *shapes, **kwargs)
 
-    def set_pen(self,pen):
+    def set_pen(self, pen):
         pass
 
-    def set_brush(self,brush):
+    def set_brush(self, brush):
         pass
 
 
@@ -542,7 +552,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                  "actions_by_repeat_key", "dt_s")
 
     trace_pen = QPen(Qt.white)
-    trace_pen.setWidth(0)        
+    trace_pen.setWidth(0)
 
     def __init__(self):
         global space
@@ -550,7 +560,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         pymunk.Space.__init__(self)
         QGraphicsScene.__init__(self)
         # TODO
-        self.setSceneRect(-2e6,-2e6,4e6,4e6)
+        self.setSceneRect(-2e6, -2e6, 4e6, 4e6)
         # self.setSceneRect(-2e3,-2e3,4e3,4e3)
         self.setBackgroundBrush(QBrush(Qt.black))
         self.timer = QTimer()
@@ -580,8 +590,29 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         self.do_initial_setup()
         if HIDE_CURSOR:
             app.setOverrideCursor(Qt.BlankCursor)
+        Sound.init()
+        # if Beep is not None:
+        #     self.init_sound()
 
-    def add_key_mapping(self,actions_by_single_key, actions_by_repeat_key):
+    # def init_sound(self):
+    #     self.message_queue = queue.Queue()
+    #     self.sound_tread = threading.Thread(target=self.sound_thread_function, daemon=True)
+    #     self.sound_tread.start()
+    #     # for _ in range(10):
+    #     #     threading.Thread(target=self.sound_thread_function, daemon=True).start()
+    #
+    # def beep(self, frequency, duration):
+    #     if Beep is not None:
+    #         self.message_queue.put((frequency, duration))
+    #
+    # def sound_thread_function(self):
+    #     while True:
+    #         #PlaySound("explosion1.wav", SND_ASYNC | SND_FILENAME)
+    #         a = self.message_queue.get()
+    #         PlaySound("shoot1.wav", SND_FILENAME | SND_ASYNC)
+    #         # Beep(*self.message_queue.get(), SND_ASYNC)
+
+    def add_key_mapping(self, actions_by_single_key, actions_by_repeat_key):
         self.actions_by_single_key.update(actions_by_single_key)
         self.actions_by_repeat_key.update(actions_by_repeat_key)
 
@@ -599,16 +630,16 @@ class MQSpace(pymunk.Space, QGraphicsScene):
     def set_player_item(self, item):
         self.player_item = item
 
-    def set_attractive_item(self, item, force,radius):
+    def set_attractive_item(self, item, force, radius):
         self.attractive_item = item
         self.attractive_item_force = force
         self.attractive_item_radius = radius
 
     def center_view_on_central_item(self, with_rotation, permanent):
-        self.main_view.center_on_item(self.central_item, with_rotation, permanent)
+        self.main_view.center_on_item(self.central_item, with_rotation, permanent, False)
 
     def center_view_on_player(self, with_rotation, permanent):
-        self.main_view.center_on_item(self.player_item, with_rotation, permanent)
+        self.main_view.center_on_item(self.player_item, with_rotation, permanent, True)
 
     def toggle_trace(self, item):
         if self.tracing_item is item:
@@ -626,7 +657,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
 
     def start(self, dt_s=TIMER_ELAPSE):
         self.dt_s = dt_s
-        self.timer.start(int(dt_s*1e3))
+        self.timer.start(int(dt_s * 1e3))
         sys.exit(app.exec_())
 
     def stop(self):
@@ -641,7 +672,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
 
     def do_initial_setup(self):
         pass
-    
+
     def do_timer_event(self):
         pass
 
@@ -664,12 +695,12 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         self.time += self.dt_s
         # pymunk simulation
         self.step(self.dt_s)
-        #self.step(SIMULATION_TIME_STEP)
+        # self.step(SIMULATION_TIME_STEP)
         for view in self.views():
             view.do_timer_event()
 
     def draw_trace(self):
-        #tracing_item_position = self.tracing_item.position
+        # tracing_item_position = self.tracing_item.position
         item_scene_position = self.tracing_item.qg_item.scenePos()
         tracing_item_position = (item_scene_position.x(), item_scene_position.y())
         if self.trace_counter == 0:
@@ -713,7 +744,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
             self.pressed_keys.add(space.just_pressed_key)
         space.keyboard_modifiers = int(QGuiApplication.queryKeyboardModifiers())
         self.do_key_press_event(keyEvent.key())
-        
+
     def keyReleaseEvent(self, keyEvent):
         keyEvent.accept()
         if not keyEvent.isAutoRepeat():
@@ -729,7 +760,8 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         self.info = None
         # call once the registered callback function associated to last key pressed, if any
         if self.just_pressed_key is not None:
-            (func, args, info) = self.actions_by_single_key.get((self.keyboard_modifiers, self.just_pressed_key), MQSpace.NO_ACTION)
+            (func, args, info) = self.actions_by_single_key.get((self.keyboard_modifiers, self.just_pressed_key),
+                                                                MQSpace.NO_ACTION)
             if func is not None:
                 self.info = info
                 func(*args)
@@ -742,8 +774,8 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         # call once the registered callback function associated to last mouse button pressed, if any
         if self.just_pressed_mouse_button is not None:
             (func, args, info) = self.actions_by_single_key.get((self.keyboard_modifiers | MOUSE_BUTTON,
-                                                         self.just_pressed_mouse_button),
-                                                         MQSpace.NO_ACTION)
+                                                                 self.just_pressed_mouse_button),
+                                                                MQSpace.NO_ACTION)
             if func is not None:
                 func(*args)
             self.just_pressed_mouse_button = None
@@ -754,12 +786,12 @@ class MQSpace(pymunk.Space, QGraphicsScene):
             func(*args)
 
     def get_cursor_position(self):
-        #position = self.main_view.mapFromGlobal(QCursor().pos())
-        #position = self.main_view.mapToScene(QCursor().pos())
-        #position = self.main_view.mapToScene(QCursor().pos().x(), -QCursor().pos().y())
-        #position = self.main_view.mapToScene(self.main_view.viewport().mapFromGlobal(QCursor().pos()))
+        # position = self.main_view.mapFromGlobal(QCursor().pos())
+        # position = self.main_view.mapToScene(QCursor().pos())
+        # position = self.main_view.mapToScene(QCursor().pos().x(), -QCursor().pos().y())
+        # position = self.main_view.mapToScene(self.main_view.viewport().mapFromGlobal(QCursor().pos()))
         position = self.main_view.mapToScene(self.main_view.mapFromGlobal(QCursor().pos()))
-        #position = self.main_view.viewport().mapToGlobal(QCursor().pos())
+        # position = self.main_view.viewport().mapToGlobal(QCursor().pos())
         return (position.x(), position.y())
 
     def add_item(self, item):
@@ -775,6 +807,11 @@ class MQSpace(pymunk.Space, QGraphicsScene):
             for shape in item.child_shapes:
                 self.add(shape)
             item.is_alive = True
+            # TODO remove handler in remove_item
+            if item.collision_function is not None:
+                # collision_handler = space.add_wildcard_collision_handler(id(item.__class__))
+                # collision_handler.begin = item.collision_function
+                space.on_collision(id(item.__class__), None, begin=item.collision_function)
 
     def remove_item(self, item):
         if item.is_alive:
@@ -787,7 +824,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
             for shape in item.child_shapes:
                 self.remove(shape)
             # TODO: check this
-            #if False and isinstance(item, CompoundItemDecomposable):
+            # if False and isinstance(item, CompoundItemDecomposable):
             #    for child_item in item.child_items:
             #        self.remove_item(child_item)
             self.remove(item)
@@ -805,8 +842,8 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         self.add_item(rect_item)
         return rect_item
 
-    def add_text_item(self, position, angle, text,font_size=None, font_family=None, **kwargs):
-        text_item = TextItem(position,angle, text, font_size, font_family, **kwargs)
+    def add_text_item(self, position, angle, text, font_size=None, font_family=None, **kwargs):
+        text_item = TextItem(position, angle, text, font_size, font_family, **kwargs)
         self.add_item(text_item)
         return text_item
 
@@ -825,7 +862,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         self.add_item(pixmap_item)
         return pixmap_item
 
-    def add_compound_item(self, position,angle, *shaqes, **kwargs):
+    def add_compound_item(self, position, angle, *shaqes, **kwargs):
         compound_item = CompoundItem(position, angle, *shaqes, **kwargs)
         self.add_item(compound_item)
         return compound_item
@@ -850,20 +887,19 @@ class MQSpace(pymunk.Space, QGraphicsScene):
 
 class MainWindow(QMainWindow):
 
-    def __init__(self,space):
+    def __init__(self, space):
         QMainWindow.__init__(self)
-        # Sound.init()
         self.installEventFilter(self)
         # self.setWindowFlags(Qt.CustomizeWindowHint | Qt.FramelessWindowHint)
         # self.setWindowFlags(Qt.FramelessWindowHint)
         self.setWindowState(self.windowState() | Qt.WindowFullScreen)
-        self.main_view = View(self,space)
+        self.main_view = View(self, space)
         self.setCentralWidget(self.main_view)
         # self.setCursor(Qt.BlankCursor)
         self.main_view.setFocus(Qt.OtherFocusReason)
 
 
-class View(QGraphicsView): 
+class View(QGraphicsView):
 
     def __init__(self, parent, space1):
         QGraphicsView.__init__(self, space1, parent)
@@ -884,7 +920,8 @@ class View(QGraphicsView):
         # self.central_item = None
         # self.is_view_centering_on_player = False
         self.view_center_item = None
-        self.view_center_with_rotation = None
+        self.view_center_with_rotation = False
+        self.view_center_with_centering = False
 
     def _translate(self, dx, dy):
         # self.setTransformationAnchor(QGraphicsView. NoAnchor)
@@ -893,9 +930,9 @@ class View(QGraphicsView):
 
     def do_timer_event(self):
         if self.view_center_item is not None:
-            self.center_on(self.view_center_item, self.view_center_with_rotation)
+            self.center_on(self.view_center_item, self.view_center_with_rotation, self.view_center_with_centering)
 
-    def center_on_item(self, item, with_rotation, permanent):
+    def center_on_item(self, item, with_rotation, permanent, with_centering):
         if permanent:
             if self.view_center_item is item:
                 self.view_center_item = None
@@ -903,26 +940,27 @@ class View(QGraphicsView):
             else:
                 self.view_center_item = item
                 self.view_center_with_rotation = with_rotation
+            self.view_center_with_centering = with_centering
         else:
             self.view_center_item = None
             self.view_center_with_rotation = None
-            self.center_on(item, with_rotation)
+            self.center_on(item, with_rotation, with_centering)
 
-    def center_on(self, item, with_rotation):
+    def center_on(self, item, with_rotation, with_centering):
         if item is not None:
             if with_rotation:
                 rotation = -item.qg_item.rotation()
-                self.rotate(-self.rotation+rotation)
+                self.rotate(-self.rotation + rotation)
                 self.rotation = rotation
-            # TODO
-            #self.centerOn(item.qg_item)
+            if with_centering:
+                self.centerOn(item.qg_item)
 
     def recenter(self, with_rotation):
         if space.central_item is not None:
-            self.center_on(space.central_item, with_rotation)
+            self.center_on(space.central_item, with_rotation, True)
 
-    def wheelEvent(self,event):
-        self.zoom(event.angleDelta().y()/100.0)
+    def wheelEvent(self, event):
+        self.zoom(event.angleDelta().y() / 100.0)
 
     def zoom(self, f):
         pos_view1 = self.mapFromGlobal(QCursor.pos())
@@ -933,8 +971,8 @@ class View(QGraphicsView):
         pos_view2 = self.mapFromScene(pos_scene)
         dx_view = pos_view2.x() - pos_view1.x()
         dy_view = pos_view2.y() - pos_view1.y()
-        self.h_scrollbar.setValue(self.h_scrollbar.value()+dx_view)
-        self.v_scrollbar.setValue(self.v_scrollbar.value()+dy_view)
+        self.h_scrollbar.setValue(self.h_scrollbar.value() + dx_view)
+        self.v_scrollbar.setValue(self.v_scrollbar.value() + dy_view)
 
 
 DYNAMIC = pymunk.Body.DYNAMIC
@@ -943,4 +981,3 @@ STATIC = pymunk.Body.STATIC
 
 space = None
 app = QApplication(sys.argv)
-

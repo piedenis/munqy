@@ -1,2 +1,2 @@
-pymunk==6.2
+pymunk==7.2
 PyQt5==5.15

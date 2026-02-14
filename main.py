@@ -3,8 +3,9 @@
 #   (c) Pierre Denis 2021-2025
 #--------------------------------------------------------------------------------
 from PyQt5.QtWidgets import QLabel
+from PyQt5.QtCore import QTimer
 
-WORLD_RADIUS = 150
+WORLD_RADIUS = 350
 WORLD2_RADIUS = 1000
 BALL_RADIUS = 100
 WIND_RADIUS = 1
@@ -12,22 +13,23 @@ BULLET_RADIUS = 2
 BOMB_RADIUS = 3
 BOX_HSIZE = 400
 BOX_VSIZE = 800
-BOMB_REARM_DELAY_S = 0.2
+BOMB_REARM_DELAY_S = 0.5
 BOMB_EXPLOSION_DELAY_S = 1.0
-BULLET_REARM_DELAY_S = 0.1
+BULLET_REARM_DELAY_S = 0.2
 BULLET_LIFETIME_S = 2.0
 BULLET_SPEED = 12e2
 DAMPING = 1
 SEGMENT_THICKNESS = 40
-GRAVITY = 800
+GRAVITY = 600
 
 CENTRAL_GRAVITY_FORCE_1 =  2e8
 CENTRAL_GRAVITY_FORCE_2 = 32e8
 ANGULAR_VELOCITY = 1*0.5
-SPACECRAFT_STABILIZATION = False
+SPACECRAFT_STABILIZATION = True
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QRadialGradient, QBrush, QPen, QColor, QCursor
+from munqy import Sound
 import munqy
 import sys
 from math import pi, cos, sin, atan2, hypot
@@ -125,21 +127,20 @@ class USpace(munqy.MQSpace):
                 self.set_attractive_item(attractive_item, CENTRAL_GRAVITY_FORCE_1, WORLD_RADIUS)
                 self.set_central_item(attractive_item)
             elif world_arg == "4":
-                matrix = ("...........................",
-                          ".WWWWWWWWWWWWWWW.WWWWWWWWW.",
-                          ".WWWWWWWWWWWWWWW.WWWWWWWWW.",
-                          ".WWWWWWWWWWWWWWW.WWWWWWWWW.",
-                          ".WWWWWWWWWWWWWWW.WWWWWWWWW.",
-                          ".WWWW.................WWWW.",
-                          ".WWWW..W..W..W........WWWW.",
-                          ".WWWW.....W..W.......WWWWW.",
-                          ".WWWW.... WWWW......WWWWWW.",
-                          ".WWWW.WWWWWWWWWWWWWWWWWWWW.",
-                          ".WWWW.WWWWWWWWW..WWWWWWWWW.",
-                          ".WWWW.WWWWWWWWW..WWWWWWWWW.",
-                          ".WWWW.WWWWWWWWWW.WWWWWWWWW.",
-                          "...........................",
-                          )
+                matrix = ("..............................................................................",
+                          ".WWWWWWWWWWWWWWW.WWWWWWWWW.........WWWWWWWWWWWW...............................",
+                          ".WWWWWWWWWWWWWWW.WWWWWWWWW.........WWWW....WWWW...............................",
+                          ".WWWWWWWWWWWWWWW.WWWWWWWWW.........WWWW.WW.WWWW...............................",
+                          ".WWWWWWWWWWWWWWW.WWWWWWWWW.................WWWW.............WWWWWWWWWWWWWWWWW.",
+                          ".WWWW.................WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.",
+                          ".WWWW..W..W..W........WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.",
+                          ".WWWW.....W..W.......................WWWWWWWWW..............WWWWWWWWWWWWWWWWW.",
+                          ".WWWW.... WWWW......WWWWWWWWWWWWWWW..WWWWWWWWW..............WWWWWWWWWWWWWWWWW.",
+                          ".WWWW.WWWWWWWWWWWWWWWWWWWW...... WW..WWWWWWWWWWWWWWWW.......WWWWWWWWWWWWWWWWW.",
+                          ".WWWW.WWWWWWWWW..WWWWWWWWW.......WW.........................WWWWWWWWWWWWWWWWW.",
+                          ".WWWW.WWWWWWWWW..WWWWWWWWW.......WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.",
+                          ".WWWW.WWWWWWWWWW.WWWWWWWWW....................................................",
+                          "..............................................................................")
 
                 matrix2 = ("wwwwwwwwwwwwwwwwwwwwwwwww",
                           "W.......................W",
@@ -151,36 +152,47 @@ class USpace(munqy.MQSpace):
 
                 central_item = munqy.CompoundItem.build_from_matrix((-500, -500), 0, matrix, "W", block_size=50,
                                                                     brush=QBrush(Qt.darkGray), elasticity=1., soft=False,
-                                                                    body_type=munqy.KINEMATIC, angular_velocity=0.00)
-                self.add_item(munqy.CompoundItem.build_from_matrix((-500, -500), 0, matrix, "w", block_size=50,
-                                                                    brush=QBrush(Qt.darkGray), elasticity=1., soft=False,
-                                                                    body_type=munqy.KINEMATIC, angular_velocity=0.00))
+                                                                    body_type=munqy.KINEMATIC, angular_velocity=0.05)
+                # self.add_item(munqy.CompoundItem.build_from_matrix((-500, -500), 0, matrix, "w", block_size=50,
+                #                                                     brush=QBrush(Qt.darkGray), elasticity=1., soft=False,
+                #                                                     body_type=munqy.KINEMATIC, angular_velocity=0.00))
                 self.add_item(central_item)
                 self.set_central_item(central_item)
-                self.gravity = (0,GRAVITY)
+                self.gravity = (0, GRAVITY)
                 # self.set_attractive_item(central_item,CENTRAL_GRAVITY_FORCE_2,WORLD2_RADIUS)
             elif world_arg == "5":
                 with open("siriusbee_levels.txt", 'r') as f:
                     matrix = f.readlines()
                 central_item = munqy.CompoundItem.build_from_matrix((-500,-500),0,matrix,"W",block_size=20,
                                                                     brush=QBrush(Qt.darkGray),elasticity=1.,soft=False,
-                                                                    body_type=munqy.KINEMATIC,angular_velocity=0.00)
-                self.add_item(munqy.CompoundItem.build_from_matrix((-500,-500),0,matrix,"w",block_size=20,
-                                                                    brush=QBrush(Qt.darkGray),elasticity=1.,soft=False,
-                                                                    body_type=munqy.KINEMATIC,angular_velocity=0.00))
+                                                                    body_type=munqy.KINEMATIC,angular_velocity=20.00)
+                # self.add_item(munqy.CompoundItem.build_from_matrix((-500,-500),0,matrix,"w",block_size=20,
+                #                                                     brush=QBrush(Qt.darkGray),elasticity=1.,soft=False,
+                #                                                     body_type=munqy.KINEMATIC,angular_velocity=0.00))
                 self.add_item(central_item)
                 self.set_central_item(central_item)
                 self.gravity = (0, GRAVITY)
             elif world_arg == "6":
+                global SPACECRAFT_STABILIZATION
+                SPACECRAFT_STABILIZATION = False
                 brush1 = QBrush(QColor(30, 30, 55))
+
+                # TODO: bug Pymunk 7 ?    moment becomes -inf when n >= 107   if precision=0
+                #       This was OK in pymunk 6
                 n = 360
                 k = 2*pi / n
                 r1 = 2*WORLD2_RADIUS
                 r2 = r1 - 500
                 ring_vertices = tuple((-r1 * sin(k * t), r1 * cos(k * t)) for t in range(n)) \
-                              + tuple((-r2 * sin(k * t), r2 * cos(k * t)) for t in range(n-1, -1, -1))
+                              + tuple((-r2 * sin(k * t), r2 * cos(k * t)) for t in range(n - 1, -1, -1))
+                              #+ tuple((-r2 * sin(k * t), r2 * cos(k * t)) for t in range(n-1, -1, -1))
+                #ring_vertices = ((0,0), (0,400), (400,400), (200, 0))[::-1]
                 ring_item = self.add_polygon_item((0., 0.), 0., ring_vertices, angular_velocity=ANGULAR_VELOCITY,
+                                                  moment=float('inf'),
+                                                  #moment=100,
+                                                  #velocity=(0, 0),
                                                   density=1e13, brush=brush1, elasticity=0.1, friction=1.4)
+                print (ring_item.moment)
                 self.add_item(ring_item)
                 self.set_central_item(ring_item)
         if world_arg == "P3":
@@ -198,7 +210,7 @@ class USpace(munqy.MQSpace):
             spacecraft_item.thrust_left =  \
             spacecraft_item.thrust_right =  \
             spacecraft_item.fire = \
-            spacecraft_item.drop_bomb = lambda : None
+            spacecraft_item.drop_bomb = lambda: None
         else:
             # spacecraft_item = SpacecraftItem((0,-400),0.,"spacecraft.png",
             spacecraft_item = SpacecraftItem((0, -400), 0., time=self.time,
@@ -212,9 +224,12 @@ class USpace(munqy.MQSpace):
             self.set_player_item(spacecraft_item)
         self.spacecraft_item = spacecraft_item
 
-        self.collision_handler1 = self.add_wildcard_collision_handler(id(Bullet))
-        # self.collision_handler1 = self.add_collision_handler(id(Bullet),id(munqy.CircleItem))
-        self.collision_handler1.post_solve = self.collides
+        # TODO
+        #self.collision_handler1 = self.add_wildcard_collision_handler(id(Bullet))
+        ## self.collision_handler1 = self.add_collision_handler(id(Bullet),id(munqy.CircleItem))
+        #self.collision_handler1.post_solve = self.collides
+        self.on_collision(id(Bullet), None, begin=self.collides)
+
         # self.kinematic_items = []
         actions_by_single_key = {
             (Qt.NoModifier, Qt.Key_Escape)       : (self.close, (),                                   "quit"                                               ),
@@ -276,11 +291,12 @@ class USpace(munqy.MQSpace):
             #self.remove_item(shape.body)
             self.items_to_remove.add(shape.body)
         """
+        Sound.hit1.play()
         (particle_shape, shape) = arbiter.shapes
         self.items_to_remove.add(particle_shape.body)
-        if isinstance(shape.body,munqy.CircleItem):
+        if isinstance(shape.body ,munqy.CircleItem):
             #self.items_to_remove.add(shape.body)
-            shape.body.set_transient(0.25,with_fading=True)
+            shape.body.set_transient(0.25, with_fading=True)
             # NOK - shall be defered
             #shape.body.body_type = munqy.KINEMATIC
             uspace.items_to_set_kinematic.add(shape.body)
@@ -301,21 +317,21 @@ class USpace(munqy.MQSpace):
     
     def drop_item1(self):
         self.add_circle_item(self.get_cursor_position(),0.,radius=1,
-                             velocity=(uniform(-200,200),uniform(-200,200)),elasticity=0.1,
-                             density=0.25e10,brush=self.brush2)
+                             velocity=(uniform(-200,200), uniform(-200,200)), elasticity=0.1,
+                             density=0.25e10, brush=self.brush2)
 
     def drop_item3(self):
-        self.add_circle_item(self.get_cursor_position(),0.,radius=uniform(10,40),
-                             velocity=(uniform(-200,200),uniform(-200,200)),elasticity=0.1,
-                             density=0.25e10,brush=self.brush2)
+        self.add_circle_item(self.get_cursor_position(), 0., radius=uniform(10, 40),
+                             velocity=(uniform(-200, 200), uniform(-200, 200)), elasticity=0.1,
+                             density=0.25e11, brush=self.brush2)
 
     def drop_item2(self):
-        self.add_rect_item(self.get_cursor_position(),0.,size=(uniform(4,16),uniform(4,16)),
+        self.add_rect_item(self.get_cursor_position(), 0., size=(uniform(4, 16),uniform(4, 16)),
                             # body_type = munqy.KINEMATIC, is_airy = True,
-                            velocity=(uniform(-200,200),uniform(-200,200)),
-                            angular_velocity=uniform(-2,2),
+                            velocity=(uniform(-200, 200), uniform(-200, 200)),
+                            angular_velocity=uniform(-2, 2),
                             density=1.25e10,
-                            brush=self.brush3,duration_s=8,with_fading=True)
+                            brush=self.brush3, duration_s=8, with_fading=True)
         
     def drop_item4(self):
         # self.add_rect_item(self.get_cursor_position(),0.,size=(uniform(40,100),uniform(40,100)),
@@ -328,8 +344,8 @@ class USpace(munqy.MQSpace):
         # self.kinematic_items.append(r)
         # self.add_segment_item((position.x(),position.y()),0.,size=(uniform(4,16),uniform(4,16)),
         #                       velocity=(uniform(-200,200),uniform(-200,200)),density=1.25e10,color=self.color3)
-        self.add_polygon_item(self.get_cursor_position(), 0., vertices=((0, 0), (+40, 0), (+40, +40),), # (+20, +40), (+20, +20), (0, +20)),
-                              velocity=(uniform(-200,200),uniform(-200,200)),density=1.25e10,brush=self.brush3)
+        self.add_polygon_item(self.get_cursor_position(), 0., vertices=((0, 0), (+40, 0), (+40, +40), (+20, +40), (+20, +20), (0, +20)),
+                              velocity=(uniform(-200,200),uniform(-200,200)),density=1.25e11,brush=self.brush3)
 
     def separate_spacecrafts(self):
         if self.spacecraft_item is not None and isinstance(self.spacecraft_item, munqy.CompoundItemDecomposable):
@@ -412,8 +428,11 @@ class AbstractSpacecraftItem(munqy.CompoundItem):
 
     wind_brush = QBrush(QColor(255, 255, 200))
 
+    def __init__(self, *args, **kwargs):
+        munqy.CompoundItem.__init__(self, *args, **kwargs)
+
     def activate_thruster(self, local_force, local_position):
-        # winsound.PlaySound("thrust1.wav",winsound.SND_ASYNC|winsound.SND_NOSTOP)
+        Sound.thrust4.play_long()
         (fx, fy) = local_force
         if fx == 0 and fy == 0:
             return
@@ -432,7 +451,7 @@ class AbstractSpacecraftItem(munqy.CompoundItem):
                                      brush=AbstractSpacecraftItem.wind_brush,
                                      #density=8.0e12, elasticity=0.65, friction=1,
                                      density=1, elasticity=0, friction=0,
-                                     duration_s=10*0.2, with_fading=True))
+                                     duration_s=0.2, with_fading=True))
 
     def stabilize(self):
         # TODO
@@ -526,6 +545,18 @@ class SpacecraftItem(AbstractSpacecraftItem):
                                     **kwargs)
         self.bullet_ready_time = time
         self.bomb_ready_time = time
+        self.collision_function = self.collides
+
+    def collides(self, arbiter, space, data):
+        # (shape_a, shape_b) = arbiter.shapes
+        # relative_speed = (shape_b.body.velocity-shape_a.body.velocity).length
+        (body_a, body_b) = arbiter.bodies
+        #relative_speed = (body_b.velocity-body_a.velocity).length
+        contact_point = arbiter.contact_point_set.points[0]
+        relative_speed = (body_b.velocity_at_world_point(contact_point.point_b)
+                        - body_a.velocity_at_world_point(contact_point.point_a)).length
+        Sound.hit1.play(volume=relative_speed**2/2e6)
+        return True
 
     def thrust_up(self):
         self.activate_thruster((0, -4.0e15), (-3, -11))
@@ -542,6 +573,8 @@ class SpacecraftItem(AbstractSpacecraftItem):
 
     def fire(self):
         if uspace.time >= self.bullet_ready_time:
+            #uspace.beep(440, 100)
+            Sound.shoot2.play()
             self.bullet_ready_time = uspace.time + BULLET_REARM_DELAY_S
             (x, y) = self.position
             (vx, vy) = self.velocity
@@ -560,13 +593,15 @@ class SpacecraftItem(AbstractSpacecraftItem):
 
     def drop_bomb(self):
         if uspace.time >= self.bomb_ready_time:
+            Sound.shoot2.play()
+            #uspace.beep(120, 150)
             self.bomb_ready_time = uspace.time + BOMB_REARM_DELAY_S
             # winsound.PlaySound("shoot3.wav",winsound.SND_ASYNC)
             (x, y) = self.position
             a = self.angle
             (dx, dy) = (cos(a), sin(a))
-            bomb = Bomb((x - 10 * dy, y + 10 * dx), a, self.velocity,
-                        delay_s=BOMB_EXPLOSION_DELAY_S)
+            dv = (self.velocity.x - 100*dy , self.velocity.y + 100*dx)
+            bomb = Bomb((x - 10 * dy, y + 10 * dx), a, dv, delay_s=BOMB_EXPLOSION_DELAY_S)
             uspace.add_item(bomb)
 
 
@@ -699,6 +734,8 @@ class Bomb(munqy.SegmentItem):
                                    duration_s=delay_s)
 
     def do_finalize(self):
+        #uspace.beep(200, 250)
+        Sound.explosion2.play()
         #winsound.Beep(440,250)
         #winsound.PlaySound("explosion1.wav",winsound.SND_ASYNC)
         (x,y) = self.position
