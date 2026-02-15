@@ -3,7 +3,6 @@
 #   (c) Pierre Denis 2021-2025
 #--------------------------------------------------------------------------------
 from PyQt5.QtWidgets import QLabel
-from PyQt5.QtCore import QTimer
 
 WORLD_RADIUS = 350
 WORLD2_RADIUS = 1000
@@ -22,7 +21,7 @@ DAMPING = 1
 SEGMENT_THICKNESS = 40
 GRAVITY = 600
 
-CENTRAL_GRAVITY_FORCE_1 =  2e8
+CENTRAL_GRAVITY_FORCE_1 =  1.6e8
 CENTRAL_GRAVITY_FORCE_2 = 32e8
 ANGULAR_VELOCITY = 1*0.5
 SPACECRAFT_STABILIZATION = True
@@ -120,10 +119,20 @@ class USpace(munqy.MQSpace):
                 radial_grad.setColorAt(0.85, QColor(0, 0, 80))
                 radial_grad.setColorAt(1.00, QColor(0, 0, 128))
                 brush1 = QBrush(radial_grad)
-                attractive_item = self.add_circle_item((0., 0.), 0., WORLD_RADIUS, density=1e13,brush=brush1,
-                                                        #velocity=(0., 0.), angular_velocity=ANGULAR_VELOCITY,
-                                                        elasticity=1, friction=0.6,
+                # circle_shaqe1 = self.add_circle_item((0., 0.), 0., WORLD_RADIUS, density=1e13,brush=brush1,
+                #                                      #velocity=(0., 0.), angular_velocity=ANGULAR_VELOCITY,
+                #                                      elasticity=1, friction=0.6,
+                #                                      body_type=munqy.STATIC)
+                circle_shaqe1 = munqy.CircleShaqe(WORLD_RADIUS, density=1e13, brush=brush1,
+                                                        elasticity=1, friction=1.6,
                                                         body_type=munqy.STATIC)
+                brush1 = QBrush(QColor(150, 150, 250))
+                circle_shaqe2 = munqy.CircleShaqe(10, offset=(WORLD_RADIUS-20, 0), density=1e13, brush=brush1,
+                                                  is_airy=True)
+                attractive_item = self.add_compound_item((0., 0.), 0., circle_shaqe1, circle_shaqe2,
+                                                         angular_velocity=4*ANGULAR_VELOCITY,
+                                                         is_airy=False,)
+                                                         #body_type=munqy.STATIC)
                 self.set_attractive_item(attractive_item, CENTRAL_GRAVITY_FORCE_1, WORLD_RADIUS)
                 self.set_central_item(attractive_item)
             elif world_arg == "4":
@@ -192,7 +201,6 @@ class USpace(munqy.MQSpace):
                                                   #moment=100,
                                                   #velocity=(0, 0),
                                                   density=1e13, brush=brush1, elasticity=0.1, friction=1.4)
-                print (ring_item.moment)
                 self.add_item(ring_item)
                 self.set_central_item(ring_item)
         if world_arg == "P3":
@@ -342,11 +350,14 @@ class USpace(munqy.MQSpace):
         #                     brush=self.brush3,duration_s=8,with_fading=True)
         # r.velocity = (uniform(-200,200),uniform(-200,200))
         # self.kinematic_items.append(r)
-        # self.add_segment_item((position.x(),position.y()),0.,size=(uniform(4,16),uniform(4,16)),
+        # self.add_segment_item((position.x(), position.y()),0.,size=(uniform(4,16),uniform(4,16)),
         #                       velocity=(uniform(-200,200),uniform(-200,200)),density=1.25e10,color=self.color3)
+        d = \
         self.add_polygon_item(self.get_cursor_position(), 0., vertices=((0, 0), (+40, 0), (+40, +40), (+20, +40), (+20, +20), (0, +20)),
-                              velocity=(uniform(-200,200),uniform(-200,200)),density=1.25e11,brush=self.brush3)
-
+                              friction=0.5,
+                              velocity=(uniform(-200,200), uniform(-200,200)), density=1.25e11,brush=self.brush3)
+        # print(d.center_of_gravity)
+        # d.center_of_gravity = (0, 0)
     def separate_spacecrafts(self):
         if self.spacecraft_item is not None and isinstance(self.spacecraft_item, munqy.CompoundItemDecomposable):
             self.dismantle_compound_item(self.spacecraft_item)
