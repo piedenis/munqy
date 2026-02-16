@@ -26,7 +26,9 @@ WIREFRAME_MODE = False
 WIREFRAME_OPAQUE = False
 TRACE_LENGTH = 10
 MOUSE_BUTTON = 0x40000000
-HIDE_CURSOR = False
+UNIVERSE_SIZE = 4000
+HIDE_CURSOR_DELAY = 2   # in sec
+ANTIALIASING = False
 
 
 class Item(pymunk.Body):
@@ -109,6 +111,9 @@ class Item(pymunk.Body):
         Item.update_position(self, dt)
         self.qg_item.setPos(*self.position)
         self.qg_item.setRotation(degrees(self.angle))
+        if UNIVERSE_SIZE is not None and (abs(self.position.x) > UNIVERSE_SIZE or abs(self.position.y) > UNIVERSE_SIZE):
+            #Sound.hit2.play_once()
+            space.remove_item(self)
 
     def _central_gravity_velocity_func(self, gravity, damping, dt):
         (x, y) = self.position
@@ -588,8 +593,6 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         self.actions_by_single_key = {}
         self.actions_by_repeat_key = {}
         self.do_initial_setup()
-        if HIDE_CURSOR:
-            app.setOverrideCursor(Qt.BlankCursor)
         Sound.init()
         # if Beep is not None:
         #     self.init_sound()
@@ -909,7 +912,8 @@ class View(QGraphicsView):
         # screen_geometry = QApplication.desktop().screenGeometry()
         # self.setWindowFlags(Qt.CustomizeWindowHint | Qt.FramelessWindowHint)
         self.setFrameStyle(QFrame.NoFrame)
-        self.setRenderHints(QPainter.Antialiasing)
+        if ANTIALIASING:
+            self.setRenderHints(QPainter.Antialiasing)
         # TODO
         # self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         # THIS TRANSLATES THE VIEW AT STARTUP  
@@ -922,6 +926,25 @@ class View(QGraphicsView):
         self.view_center_item = None
         self.view_center_with_rotation = False
         self.view_center_with_centering = False
+        if HIDE_CURSOR_DELAY > 0:
+            self.setMouseTracking(True)
+        self.hideCursor()
+
+    def hideCursor(self):
+        self.hideCursorTimer = None
+        app.setOverrideCursor(Qt.BlankCursor)
+
+    def mouseMoveEvent(self, mouseEvent):
+        QGraphicsView.mouseMoveEvent(self, mouseEvent)
+        if self.hideCursorTimer is None:
+            app.setOverrideCursor(Qt.CrossCursor)
+            self.hideCursorTimer = QTimer()
+            self.hideCursorTimer.setSingleShot(True)
+            self.hideCursorTimer.timeout.connect(self.hideCursor)
+            self.hideCursorTimer.start(1000 * HIDE_CURSOR_DELAY)
+        else:
+            self.hideCursorTimer.stop()
+            self.hideCursorTimer.start(1000 * HIDE_CURSOR_DELAY)
 
     def _translate(self, dx, dy):
         # self.setTransformationAnchor(QGraphicsView. NoAnchor)

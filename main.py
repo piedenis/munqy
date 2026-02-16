@@ -13,7 +13,7 @@ BOMB_RADIUS = 3
 BOX_HSIZE = 400
 BOX_VSIZE = 800
 BOMB_REARM_DELAY_S = 0.5
-BOMB_EXPLOSION_DELAY_S = 1.0
+BOMB_EXPLOSION_DELAY_S = 4.0
 BULLET_REARM_DELAY_S = 0.2
 BULLET_LIFETIME_S = 2.0
 BULLET_SPEED = 12e2
@@ -161,6 +161,7 @@ class USpace(munqy.MQSpace):
 
                 central_item = munqy.CompoundItem.build_from_matrix((-500, -500), 0, matrix, "W", block_size=50,
                                                                     brush=QBrush(Qt.darkGray), elasticity=1., soft=False,
+                                                                    friction = 1.5,
                                                                     body_type=munqy.KINEMATIC, angular_velocity=0.05)
                 # self.add_item(munqy.CompoundItem.build_from_matrix((-500, -500), 0, matrix, "w", block_size=50,
                 #                                                     brush=QBrush(Qt.darkGray), elasticity=1., soft=False,
@@ -299,10 +300,11 @@ class USpace(munqy.MQSpace):
             #self.remove_item(shape.body)
             self.items_to_remove.add(shape.body)
         """
-        Sound.hit1.play()
+        Sound.hit1.play_once()
         (particle_shape, shape) = arbiter.shapes
         self.items_to_remove.add(particle_shape.body)
-        if isinstance(shape.body ,munqy.CircleItem):
+        if isinstance(shape.body, (munqy.CircleItem, munqy.PolygonItem)):
+            Sound.hit3.play_once()
             #self.items_to_remove.add(shape.body)
             shape.body.set_transient(0.25, with_fading=True)
             # NOK - shall be defered
@@ -443,7 +445,6 @@ class AbstractSpacecraftItem(munqy.CompoundItem):
         munqy.CompoundItem.__init__(self, *args, **kwargs)
 
     def activate_thruster(self, local_force, local_position):
-        Sound.thrust4.play_long()
         (fx, fy) = local_force
         if fx == 0 and fy == 0:
             return
@@ -530,10 +531,10 @@ class SpacecraftItem(AbstractSpacecraftItem):
                                             density=1e12, elasticity=0.45, friction=0.2, **kwargs)
         reactor_u_shaqe = munqy.RectShaqe(size=(4, 3), offset=(0, -7.5),
                                           brush=QBrush(Qt.gray), pen=SpacecraftItem.shape_pen,
-                                          density=1e12,elasticity=0.45, friction=0.9, **kwargs)
+                                          density=1e12,elasticity=0.45, friction=2.9, **kwargs)
         reactor_l_shaqe = munqy.RectShaqe(size=(3, 4), offset=(-16, 0),
                                           brush=QBrush(Qt.gray), pen=SpacecraftItem.shape_pen,
-                                          density=1e12,elasticity=0.45, friction=0.9, **kwargs)
+                                          density=1e12,elasticity=0.45, friction=2.9, **kwargs)
         reactor_r_shaqe = munqy.RectShaqe(size=(3,4), offset=(+16, 0),
                                           brush=QBrush(Qt.gray), pen=SpacecraftItem.shape_pen,
                                           density=1e12, elasticity=0.45, friction=0.3, **kwargs)
@@ -566,26 +567,30 @@ class SpacecraftItem(AbstractSpacecraftItem):
         contact_point = arbiter.contact_point_set.points[0]
         relative_speed = (body_b.velocity_at_world_point(contact_point.point_b)
                         - body_a.velocity_at_world_point(contact_point.point_a)).length
-        Sound.hit1.play(volume=relative_speed**2/2e6)
+        Sound.hit1.play_once(volume=relative_speed ** 2 / 2e6)
         return True
 
     def thrust_up(self):
+        Sound.thrust4.play_long()
         self.activate_thruster((0, -4.0e15), (-3, -11))
         self.activate_thruster((0, -4.0e15), (+3, -11))
 
     def thrust_down(self):
+        Sound.thrust5.play_long()
         self.activate_thruster((0.0, +3e15), (0, +11))
 
     def thrust_left(self):
+        Sound.thrust5.play_long()
         self.activate_thruster((-0.25e16, 0.0), (+19, 0))
 
     def thrust_right(self):
+        Sound.thrust5.play_long()
         self.activate_thruster((+0.25e16, 0.0), (-19, 0))
 
     def fire(self):
         if uspace.time >= self.bullet_ready_time:
             #uspace.beep(440, 100)
-            Sound.shoot2.play()
+            Sound.shoot2.play_once()
             self.bullet_ready_time = uspace.time + BULLET_REARM_DELAY_S
             (x, y) = self.position
             (vx, vy) = self.velocity
@@ -604,7 +609,7 @@ class SpacecraftItem(AbstractSpacecraftItem):
 
     def drop_bomb(self):
         if uspace.time >= self.bomb_ready_time:
-            Sound.shoot2.play()
+            Sound.shoot2.play_once()
             #uspace.beep(120, 150)
             self.bomb_ready_time = uspace.time + BOMB_REARM_DELAY_S
             # winsound.PlaySound("shoot3.wav",winsound.SND_ASYNC)
@@ -746,7 +751,7 @@ class Bomb(munqy.SegmentItem):
 
     def do_finalize(self):
         #uspace.beep(200, 250)
-        Sound.explosion2.play()
+        Sound.explosion2.play_once()
         #winsound.Beep(440,250)
         #winsound.PlaySound("explosion1.wav",winsound.SND_ASYNC)
         (x,y) = self.position
