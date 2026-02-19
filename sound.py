@@ -1,6 +1,7 @@
 
 from PyQt5.QtMultimedia import QSound, QSoundEffect
 from PyQt5.QtCore import QUrl, QTimer
+from PyQt5.QtTextToSpeech import QTextToSpeech
 #import threading, queue
 
 class SoundEffect(QSoundEffect):
@@ -47,6 +48,16 @@ class SoundEffect(QSoundEffect):
 
 
 class Sound:
+
+    tts = QTextToSpeech()
+    tts.setVoice(tts.availableVoices()[0])
+
+    @staticmethod
+    def say(message):
+        #Sound.tts.stop()
+        print(Sound.tts.state())
+        if Sound.tts.state() == QTextToSpeech.Ready:
+            Sound.tts.say(message)
 
     @staticmethod
     def sound_effect(name,volume=None):

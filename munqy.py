@@ -4,7 +4,7 @@
 # --------------------------------------------------------------------------------
 
 import sys
-from math import degrees, hypot
+from math import degrees, hypot, atan2
 from itertools import islice
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -26,9 +26,10 @@ WIREFRAME_MODE = False
 WIREFRAME_OPAQUE = False
 TRACE_LENGTH = 10
 MOUSE_BUTTON = 0x40000000
-UNIVERSE_SIZE = 4000
+UNIVERSE_SIZE = 8000
 HIDE_CURSOR_DELAY = 2   # in sec
 ANTIALIASING = False
+SHOW_VELOCITY = False
 
 
 class Item(pymunk.Body):
@@ -44,7 +45,8 @@ class Item(pymunk.Body):
         updated according to the shape's.
     """
 
-    __slots__ = ('shaqe', 'qg_item', 'child_shapes', 'is_alive', 'fading_time', 'end_time', 'collision_function')
+    __slots__ = ('shaqe', 'qg_item', 'child_shapes', 'is_alive', 'fading_time', 'end_time', 'collision_function',
+                 'qg_line_item_velocity')
 
     transient_items = []
 
@@ -88,6 +90,10 @@ class Item(pymunk.Body):
         if position is not None:
             self.qg_item.setPos(*position)
             self.qg_item.setRotation(degrees(angle))
+        self.qg_line_item_velocity = None
+        if SHOW_VELOCITY:
+            self.qg_line_item_velocity = QGraphicsLineItem(0, 0, 0, 0)
+            self.qg_line_item_velocity.setPen(Shaqe.VELOCITY_PEN)
         if space.attractive_item is not None:
             self.velocity_func = Item._central_gravity_velocity_func
         self.is_alive = False
@@ -109,11 +115,14 @@ class Item(pymunk.Body):
 
     def _position_func(self, dt):
         Item.update_position(self, dt)
-        self.qg_item.setPos(*self.position)
-        self.qg_item.setRotation(degrees(self.angle))
         if UNIVERSE_SIZE is not None and (abs(self.position.x) > UNIVERSE_SIZE or abs(self.position.y) > UNIVERSE_SIZE):
-            #Sound.hit2.play_once()
             space.remove_item(self)
+        else:
+            self.qg_item.setPos(*self.position)
+            self.qg_item.setRotation(degrees(self.angle))
+            if self.qg_line_item_velocity is not None:
+                self.qg_line_item_velocity.setLine(self.position.x, self.position.y,
+                                                   self.position.x + self.velocity.x/10, self.position.y + self.velocity.y/10)
 
     def _central_gravity_velocity_func(self, gravity, damping, dt):
         (x, y) = self.position
@@ -187,6 +196,8 @@ class Shaqe:
     NO_BRUSH = QBrush(Qt.NoBrush)
     WIREFRAME_PEN = QPen(Qt.white)
     WIREFRAME_PEN.setWidth(0)
+    VELOCITY_PEN = QPen(QColor(180,180,255))
+    VELOCITY_PEN.setWidth(0)
 
     def __init__(self, qg_item, *shapes, **kwargs):
         self.qg_item = qg_item
@@ -447,6 +458,15 @@ class SegmentItem(Item):
     def __init__(self, position, angle, size, color, **kwargs):
         Item.__init__(self, position, angle,
                       SegmentShaqe(size, color, **kwargs), **kwargs)
+
+    @staticmethod
+    def build_from_line(start_point, end_point, width, color, **kwargs):
+        (x1, y1) = start_point
+        (x2, y2) = end_point
+        length = hypot(x2 - x1, y2 - y1)
+        p = ((x1 + x2) / 2., (y1 + y2) / 2.)
+        a = atan2(y2 - y1, x2 - x1)
+        return SegmentItem(p, a, (length, width), color, **kwargs)
 
 
 class PixmapShaqe(Shaqe):
@@ -802,6 +822,8 @@ class MQSpace(pymunk.Space, QGraphicsScene):
             if item.body_type != STATIC:
                 self.add(item)
             self.addItem(item.qg_item)
+            if item.qg_line_item_velocity is not None:
+                self.addItem(item.qg_line_item_velocity)
             """
             if not (item.body_type == KINEMATIC and item.is_airy):
                 for shape in item.child_shapes:
@@ -832,6 +854,8 @@ class MQSpace(pymunk.Space, QGraphicsScene):
             #        self.remove_item(child_item)
             self.remove(item)
             self.removeItem(item.qg_item)
+            if item.qg_line_item_velocity is not None:
+                self.removeItem(item.qg_line_item_velocity)
             item.is_alive = False
             item.do_finalize()
 
@@ -857,6 +881,11 @@ class MQSpace(pymunk.Space, QGraphicsScene):
 
     def add_segment_item(self, position, angle, size, color, **kwargs):
         segment_item = SegmentItem(position, angle, size, color, **kwargs)
+        self.add_item(segment_item)
+        return segment_item
+
+    def add_segment_item_from_line(self, start_point, end_point, width, color, **kwargs):
+        segment_item = SegmentItem.build_from_line(start_point, end_point, width, color, **kwargs)
         self.add_item(segment_item)
         return segment_item
 
@@ -887,6 +916,57 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         for item in compound_item.child_items:
             compound_item.qg_item.removeFromGroup(item.qg_item)
 
+    def load_level(self, svg_filename):
+        from svgelements import SVG, Path, Rect, Text, Circle
+        s_pos = (0, 0)
+        svg = SVG.parse(svg_filename)
+        for svg_element in svg.elements():
+            if isinstance(svg_element, Text):
+                # TODO NOK svg_element.text is None (due to "tspan" child)
+                if svg_element.text == "S":
+                    s_pos = (svg_element.x, svg_element.y)
+            elif isinstance(svg_element, Rect):
+                w = svg_element.width
+                h = svg_element.height
+                self.add_rect_item((svg_element.x+w/2, svg_element.y+h/2), 1*svg_element.rotation,
+                                   size=(w, h),
+                                   body_type=STATIC,
+                                   brush=QBrush(QColor(svg_element.fill.rgb)))
+            elif isinstance(svg_element, Circle):
+                assert svg_element.rx==svg_element.ry
+                self.add_circle_item((svg_element.cx, svg_element.cy), 0,
+                                   svg_element.rx,
+                                   body_type=STATIC,
+                                   brush=QBrush(QColor(svg_element.fill.rgb)))
+            elif isinstance(svg_element, Path):
+                if svg_element.stroke.rgb is not None:
+                    (p1, p2) = tuple(svg_element.as_points())[::2]
+                    self.add_segment_item_from_line((p1.x, p1.y), (p2.x, p2.y),
+                                                    width=svg_element.stroke_width,
+                                                    color=svg_element.stroke.rgb,
+                                                    body_type=STATIC)
+                elif svg_element.fill.rgb > 0:
+                    vertices = tuple(tuple(point) for point in tuple(svg_element.as_points())[::2])
+                    self.add_polygon_item((0, 0), 0., vertices=vertices[::-1], friction=0.5,
+                                          body_type=STATIC,
+                                          #color=svg_element.fill.rgb)
+                                          brush=QBrush(QColor(svg_element.fill.rgb)))
+                else:
+                    BORDER_WIDTH = 1000
+                    (x, y, w, h) = svg_element.bbox()
+                    inner_vertices = tuple(tuple(point) for point in tuple(svg_element.as_points())[::2])
+                    vertices = ((x     - BORDER_WIDTH , y     - BORDER_WIDTH),
+                                (x + w + BORDER_WIDTH , y     - BORDER_WIDTH),
+                                (x + w + BORDER_WIDTH , y + h + BORDER_WIDTH),
+                                (x     - BORDER_WIDTH , y + h + BORDER_WIDTH),
+                                (x     - BORDER_WIDTH+1e-6, y   - BORDER_WIDTH)) \
+                               + inner_vertices + (inner_vertices[0],)
+                    #vertices += ((x - BORDER_WIDTH, y - BORDER_WIDTH),)
+                    self.add_polygon_item((0,0), 0., vertices=vertices, friction=0.5,
+                                          body_type=STATIC,
+                                          #color=Qt.darkGray)
+                                          brush=QBrush(Qt.darkGray))
+        return s_pos
 
 class MainWindow(QMainWindow):
 

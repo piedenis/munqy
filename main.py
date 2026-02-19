@@ -5,7 +5,7 @@
 from PyQt5.QtWidgets import QLabel
 
 WORLD_RADIUS = 350
-WORLD2_RADIUS = 1000
+WORLD2_RADIUS = 900
 BALL_RADIUS = 100
 WIND_RADIUS = 1
 BULLET_RADIUS = 2
@@ -22,7 +22,7 @@ SEGMENT_THICKNESS = 40
 GRAVITY = 600
 
 CENTRAL_GRAVITY_FORCE_1 =  1.6e8
-CENTRAL_GRAVITY_FORCE_2 = 32e8
+CENTRAL_GRAVITY_FORCE_2 = 8e8
 ANGULAR_VELOCITY = 1*0.5
 SPACECRAFT_STABILIZATION = True
 
@@ -57,6 +57,8 @@ class USpace(munqy.MQSpace):
         # self.label.setText(256*"X")
         self.label.hide()
 
+        Sound.say("3, 2, 1, GO!")
+
     def do_initial_setup(self):
         """
         radialGrad = QRadialGradient(0,0,BALL_RADIUS)
@@ -64,6 +66,7 @@ class USpace(munqy.MQSpace):
         radialGrad.setColorAt(1.00, QColor(40,40,40))
         self.brush2 = QBrush(radialGrad)
         """
+        spacecraft_position = (0, -400)
         if len(sys.argv) >= 2:
             world_arg = sys.argv[1]
             if world_arg == "0":
@@ -86,12 +89,12 @@ class USpace(munqy.MQSpace):
                                   ((  10,   -10), (   W,   -10)),
                                   ((   W,   -10), (   W, -1000)))
                 for (p1,p2) in self.segments:
-                    (x1,y1) = p1
-                    (x2,y2) = p2
-                    length = hypot(x2-x1,y2-y1)
+                    (x1, y1) = p1
+                    (x2, y2) = p2
+                    length = hypot(x2-x1, y2-y1)
                     p = (-W2+(x1+x2)/2., W2-400+(y1+y2)/2.)
                     a = atan2(y2-y1, x2-x1)
-                    self.add_segment_item(p, a, size=(length,SEGMENT_THICKNESS),
+                    self.add_segment_item(p, a, size=(length, SEGMENT_THICKNESS),
                                           color=Qt.darkGray,
                                           elasticity=1, friction=0.6,
                                           body_type=munqy.STATIC)
@@ -102,40 +105,43 @@ class USpace(munqy.MQSpace):
                 n = 120
                 k = pi / (n - 1)
                 semicircle_vertices1 = tuple(
-                    (-WORLD2_RADIUS * sin(k * t), WORLD2_RADIUS * cos(k * t)) for t in range(1, n - 1))
+                    (-WORLD2_RADIUS * sin(k * t), WORLD2_RADIUS * cos(k * t)) for t in range(1, n - 2))
                 semicircle_vertices2 = tuple(
-                    (+WORLD2_RADIUS * sin(k * t), WORLD2_RADIUS * cos(k * t)) for t in range(1, n - 1))
+                    (+WORLD2_RADIUS * sin(k * t), WORLD2_RADIUS * cos(k * t)) for t in range(n - 3, 2, -1))
                 semicircle_shaqe1 = munqy.PolygonShaqe(semicircle_vertices1, density=1e13, brush=brush1,
                                                        elasticity=1, friction=0.6)
-                semicircle_shaqe2 = munqy.PolygonShaqe(semicircle_vertices2[::-1], density=1e13, brush=brush1,
+                semicircle_shaqe2 = munqy.PolygonShaqe(semicircle_vertices2, density=1e13, brush=brush1,
                                                        elasticity=1, friction=0.6)
                 attractive_item = self.add_compound_item((0., 0.), 0., semicircle_shaqe1, semicircle_shaqe2,
                                                          angular_velocity=ANGULAR_VELOCITY)
                 self.set_attractive_item(attractive_item, CENTRAL_GRAVITY_FORCE_2, WORLD2_RADIUS)
-                self.set_central_item(self.attractive_item)
-            elif world_arg[-1] == "3":
+                self.set_central_item(attractive_item)
+            elif world_arg[-1] in ("3", "4"):
                 radial_grad = QRadialGradient(0, 0, WORLD_RADIUS)
                 radial_grad.setColorAt(0.00, Qt.black)
                 radial_grad.setColorAt(0.85, QColor(0, 0, 80))
                 radial_grad.setColorAt(1.00, QColor(0, 0, 128))
                 brush1 = QBrush(radial_grad)
-                # circle_shaqe1 = self.add_circle_item((0., 0.), 0., WORLD_RADIUS, density=1e13,brush=brush1,
+                # circle_shaqe1 = self.add_circle_item((0., 0.), 0., WORLD_RADIUS, density=1e13, brush=brush1,
                 #                                      #velocity=(0., 0.), angular_velocity=ANGULAR_VELOCITY,
                 #                                      elasticity=1, friction=0.6,
-                #                                      body_type=munqy.STATIC)
+                #                                      body_type=munqy.STATIC,)
                 circle_shaqe1 = munqy.CircleShaqe(WORLD_RADIUS, density=1e13, brush=brush1,
-                                                        elasticity=1, friction=1.6,
-                                                        body_type=munqy.STATIC)
-                brush1 = QBrush(QColor(150, 150, 250))
-                circle_shaqe2 = munqy.CircleShaqe(10, offset=(WORLD_RADIUS-20, 0), density=1e13, brush=brush1,
-                                                  is_airy=True)
-                attractive_item = self.add_compound_item((0., 0.), 0., circle_shaqe1, circle_shaqe2,
-                                                         angular_velocity=4*ANGULAR_VELOCITY,
-                                                         is_airy=False,)
-                                                         #body_type=munqy.STATIC)
+                                                        elasticity=1, friction=1.6)
+                                                        #body_type=munqy.STATIC)
+                if world_arg[-1] == "3":
+                    brush1 = QBrush(QColor(150, 150, 250))
+                    circle_shaqe2 = munqy.CircleShaqe(10, offset=(WORLD_RADIUS - 20, 0), density=1e13, brush=brush1,
+                                                      is_airy=True)
+                    attractive_item = self.add_compound_item((0., 0.), 0., circle_shaqe1, circle_shaqe2,
+                                                             angular_velocity=4*ANGULAR_VELOCITY)
+                else:
+                    attractive_item = self.add_compound_item((0., 0.), 0., circle_shaqe1,
+                                                             is_airy=True,
+                                                             body_type=munqy.STATIC)
                 self.set_attractive_item(attractive_item, CENTRAL_GRAVITY_FORCE_1, WORLD_RADIUS)
                 self.set_central_item(attractive_item)
-            elif world_arg == "4":
+            elif world_arg == "5":
                 matrix = ("..............................................................................",
                           ".WWWWWWWWWWWWWWW.WWWWWWWWW.........WWWWWWWWWWWW...............................",
                           ".WWWWWWWWWWWWWWW.WWWWWWWWW.........WWWW....WWWW...............................",
@@ -170,8 +176,8 @@ class USpace(munqy.MQSpace):
                 self.set_central_item(central_item)
                 self.gravity = (0, GRAVITY)
                 # self.set_attractive_item(central_item,CENTRAL_GRAVITY_FORCE_2,WORLD2_RADIUS)
-            elif world_arg == "5":
-                with open("siriusbee_levels.txt", 'r') as f:
+            elif world_arg == "6":
+                with open("resources/siriusbee_levels.txt", 'r') as f:
                     matrix = f.readlines()
                 central_item = munqy.CompoundItem.build_from_matrix((-500,-500),0,matrix,"W",block_size=20,
                                                                     brush=QBrush(Qt.darkGray),elasticity=1.,soft=False,
@@ -182,7 +188,7 @@ class USpace(munqy.MQSpace):
                 self.add_item(central_item)
                 self.set_central_item(central_item)
                 self.gravity = (0, GRAVITY)
-            elif world_arg == "6":
+            elif world_arg == "7":
                 global SPACECRAFT_STABILIZATION
                 SPACECRAFT_STABILIZATION = False
                 brush1 = QBrush(QColor(30, 30, 55))
@@ -204,6 +210,11 @@ class USpace(munqy.MQSpace):
                                                   density=1e13, brush=brush1, elasticity=0.1, friction=1.4)
                 self.add_item(ring_item)
                 self.set_central_item(ring_item)
+            elif world_arg == "8":
+                self.gravity = (0, GRAVITY)
+                spacecraft_position = self.load_level("resources/level.svg")
+
+
         if world_arg == "P3":
             munqy.SIMULATION_TIME_STEP = 2e-3  # in sec
             munqy.HIDE_CURSOR = True
@@ -222,7 +233,7 @@ class USpace(munqy.MQSpace):
             spacecraft_item.drop_bomb = lambda: None
         else:
             # spacecraft_item = SpacecraftItem((0,-400),0.,"spacecraft.png",
-            spacecraft_item = SpacecraftItem((0, -400), 0., time=self.time,
+            spacecraft_item = SpacecraftItem(spacecraft_position, 0., time=self.time,
                                                   velocity=(0., 0.), angular_velocity=0.0)
         self.add_item(spacecraft_item)
         spacecraft_item.center_of_gravity = (0, 0)
@@ -232,6 +243,7 @@ class USpace(munqy.MQSpace):
         else:
             self.set_player_item(spacecraft_item)
         self.spacecraft_item = spacecraft_item
+        self.center_view_on_player(False, True)
 
         # TODO
         #self.collision_handler1 = self.add_wildcard_collision_handler(id(Bullet))
@@ -609,6 +621,7 @@ class SpacecraftItem(AbstractSpacecraftItem):
 
     def drop_bomb(self):
         if uspace.time >= self.bomb_ready_time:
+            Sound.say("Bomb dropped!")
             Sound.shoot2.play_once()
             #uspace.beep(120, 150)
             self.bomb_ready_time = uspace.time + BOMB_REARM_DELAY_S
