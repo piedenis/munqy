@@ -54,8 +54,6 @@ class Sound:
 
     @staticmethod
     def say(message):
-        #Sound.tts.stop()
-        print(Sound.tts.state())
         if Sound.tts.state() == QTextToSpeech.Ready:
             Sound.tts.say(message)
 

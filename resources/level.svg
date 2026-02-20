@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="3879"
-   height="2712"
-   viewBox="0 0 3879 2712"
+   width="80000"
+   height="80000"
+   viewBox="0 0 80000 80000"
    version="1.1"
    id="svg1"
    inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
@@ -15,7 +15,7 @@
    xmlns:svg="http://www.w3.org/2000/svg">
   <sodipodi:namedview
      id="namedview1"
-     pagecolor="#ffffff"
+     pagecolor="#787878"
      bordercolor="#000000"
      borderopacity="0.25"
      inkscape:showpageshadow="2"
@@ -24,9 +24,9 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="px"
      showgrid="true"
-     inkscape:zoom="1.0947061"
-     inkscape:cx="1562.9766"
-     inkscape:cy="1186.6199"
+     inkscape:zoom="0.04"
+     inkscape:cx="5187.5"
+     inkscape:cy="16550"
      inkscape:window-width="1920"
      inkscape:window-height="1058"
      inkscape:window-x="196"
@@ -229,7 +229,9 @@
        close="false"
        join="false"
        linkedpaths="#path9,0,1"
-       id="path-effect11" />
+       id="path-effect11"
+       is_visible="true"
+       lpeversion="0" />
     <inkscape:path-effect
        effect="fill_between_many"
        method="bsplinespiro"
@@ -237,7 +239,9 @@
        close="false"
        join="false"
        linkedpaths="#path12,0,1"
-       id="path-effect14" />
+       id="path-effect14"
+       is_visible="true"
+       lpeversion="0" />
     <inkscape:path-effect
        effect="fill_between_many"
        method="bsplinespiro"
@@ -245,7 +249,9 @@
        close="false"
        join="false"
        linkedpaths="#path15,0,1"
-       id="path-effect16" />
+       id="path-effect16"
+       is_visible="true"
+       lpeversion="0" />
     <inkscape:path-effect
        effect="fill_between_many"
        method="bsplinespiro"
@@ -253,7 +259,9 @@
        close="false"
        join="false"
        linkedpaths="#path18,0,1"
-       id="path-effect19" />
+       id="path-effect19"
+       is_visible="true"
+       lpeversion="0" />
     <inkscape:path-effect
        effect="fill_between_many"
        method="bsplinespiro"
@@ -261,7 +269,9 @@
        close="false"
        join="false"
        linkedpaths="#path21,0,1"
-       id="path-effect22" />
+       id="path-effect22"
+       is_visible="true"
+       lpeversion="0" />
     <inkscape:path-effect
        effect="fill_between_many"
        method="bsplinespiro"
@@ -269,7 +279,9 @@
        close="false"
        join="false"
        linkedpaths="#path23,0,1"
-       id="path-effect24" />
+       id="path-effect24"
+       is_visible="true"
+       lpeversion="0" />
     <inkscape:path-effect
        effect="fill_between_many"
        method="bsplinespiro"
@@ -277,7 +289,9 @@
        close="false"
        join="false"
        linkedpaths="#path25,0,1"
-       id="path-effect26" />
+       id="path-effect26"
+       is_visible="true"
+       lpeversion="0" />
     <inkscape:path-effect
        effect="fill_between_many"
        method="bsplinespiro"
@@ -285,7 +299,9 @@
        close="false"
        join="false"
        linkedpaths="#path27,0,1"
-       id="path-effect28" />
+       id="path-effect28"
+       is_visible="true"
+       lpeversion="0" />
     <inkscape:path-effect
        effect="fill_between_many"
        method="bsplinespiro"
@@ -293,99 +309,165 @@
        close="false"
        join="false"
        linkedpaths="#path29,0,1"
-       id="path-effect30" />
+       id="path-effect30"
+       is_visible="true"
+       lpeversion="0" />
   </defs>
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1">
     <path
-       style="fill:#000000;fill-opacity:1;marker-start:url(#ArrowWideHeavy)"
-       d="m 311.32606,225.834 v 1680 h 280 v -200 H 1591.326 V 945.83403 h 520 V 1785.834 H 671.32606 v 120 l 717.89474,52.3206 109.2345,75.4306 200,80 1240,80 40,240 -840,40 v -280 h -800 v 360 l 2484.1675,-57.9043 -5.1675,-816.4486 -834.9105,1.5354 -44.0895,432.8175 -1280,-80 -134.0327,-77.1954 946.9035,-50.5558 480,-320 h 640 v -1360 h -320 v 240 h -480 v -240 h -640 v 560 h -560 v -560"
+       style="fill:#000000;fill-opacity:1;stroke-width:6.88202;marker-start:url(#ArrowWideHeavy)"
+       d="M 315.21099,227.12898 V 11788.909 H 2242.1743 V 10412.507 H 9124.1859 V 5182.1777 H 12702.832 V 10963.068 H 2792.7352 v 825.841 l 1201.2862,161.868 6.337,1731.591 -1465.4352,35.349 L 2560,14480 l -1170,1200 10,3520 H 480 v 1920 l 1600,-480 640,-480 h 1120 v -960 H 1540 L 1525.1268,15685.479 2680,14480 l 1323.3029,6.95 19.0685,5210.533 h 447.3308 v -309.69 l 199.7819,-498.777 410.7913,95.003 1724.7127,36.539 3342.3739,-802.708 v -1376.402 l -5023.8687,103.23 v -172.05 l 1995.7836,-344.101 V 12574.601 H 4504.1123 l 11.1565,5017.879 324.1332,2.584 15.5024,-788.502 164.1433,-11.049 14.0621,259.087 550.1688,-5.167 -1.3021,585.208 2913.7027,32.649 v 137.64 H 6293.4353 l 328.8554,1000.021 -1567.6174,-36.539 -584.9711,-103.231 -111.2633,-6686.417 3374.8566,170.216 751.753,519.114 1376.4026,550.561 8533.6949,550.561 275.28,1651.683 -5780.89,275.281 v -1926.964 l -5505.6094,68.82 v 2477.525 l 17096.0704,-467.319 -35.563,-5618.809 -5745.864,10.567 -303.424,2978.655 -8808.9754,-550.561 -922.4147,-531.259 6516.6011,-347.926 3303.366,-2202.2437 H 22888.21 V 227.12898 H 20685.966 V 1878.8118 H 17382.601 V 227.12898 H 12978.113 V 4081.0556 H 9124.1865 V 227.12898"
        id="path1"
-       sodipodi:nodetypes="ccccccccccccccccccccccccccccccccccccc" />
-    <rect
-       style="fill:#63709b;fill-opacity:1;stroke-width:0.55639"
-       id="rect1"
-       width="38.612495"
-       height="769.6651"
-       x="881.38757"
-       y="960" />
-    <rect
-       style="fill:#63709b;fill-opacity:1;stroke-width:1.48324"
-       id="rect1-8"
-       width="240"
-       height="880"
-       x="3120"
-       y="600"
-       inkscape:transform-center-x="301.43541"
-       inkscape:transform-center-y="-1155.7895" />
+       sodipodi:nodetypes="cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" />
     <text
        xml:space="preserve"
-       style="font-family:Candice;-inkscape-font-specification:Candice;writing-mode:lr-tb;direction:ltr;fill:#f8f9ff;fill-opacity:1"
-       x="900.48828"
-       y="958.88281"
-       id="text1"><tspan
-         sodipodi:role="line"
-         id="tspan1"
-         x="900.48828"
-         y="958.88281"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:sans-serif;fill:#f8f9ff;fill-opacity:1">S</tspan></text>
+       style="font-family:Candice;-inkscape-font-specification:Candice;writing-mode:lr-tb;direction:ltr;white-space:pre;inline-size:16.5117;display:inline;fill:#c4f655;fill-opacity:1"
+       x="938.48828"
+       y="2669.8418"
+       id="text1"
+       transform="matrix(6.8820118,0,0,6.8820118,-1558.9402,-4705.849)"><tspan
+         x="938.48828"
+         y="2669.8418"
+         id="tspan3"><tspan
+           style="font-family:sans-serif;-inkscape-font-specification:sans-serif"
+           id="tspan2">S</tspan></tspan></text>
+    <rect
+       style="fill:#63709b;fill-opacity:1;stroke-width:3.82908"
+       id="rect1"
+       width="265.73166"
+       height="5296.8447"
+       x="4238.3813"
+       y="5279.668" />
+    <rect
+       style="fill:#2e2e2e;fill-opacity:1;stroke-width:10.2077"
+       id="rect1-8"
+       width="1651.6829"
+       height="6056.1704"
+       x="19644.539"
+       y="2802.1436"
+       inkscape:transform-center-x="2074.4816"
+       inkscape:transform-center-y="-7954.1574" />
     <path
-       style="fill:#ff6600"
-       d="m 1251.4774,1437.8289 -52.9823,283.181 310.5857,-5.4809 -49.3283,-277.7001 -102.3106,93.1757 -122.4073,-292.3159"
+       style="fill:#787878;fill-opacity:1;stroke-width:6.88202"
+       d="m 5760,8640 -11.0324,1452.683 2137.4543,-37.719 L 8640,9920 8395.4721,7967.0514 7514.5926,8785.0644 7040,8000 h -960"
        id="path2"
-       sodipodi:nodetypes="cccccc" />
+       sodipodi:nodetypes="cccccccc" />
     <path
-       style="fill:#b3b3b3"
-       d="m 2598.8671,856.41264 -221.064,473.18636 336.1634,279.5271 -89.5218,-522.5147 131.5422,-283.18103 -180.8705,-343.47119"
+       style="fill:#787878;stroke-width:6.88202;fill-opacity:1"
+       d="m 16058.096,4566.7788 -1521.365,3256.474 2313.48,1923.7089 -616.09,-3595.9525 905.275,-1948.8551 -1244.753,-2363.7728"
        id="path2-8"
        sodipodi:nodetypes="cccccc" />
     <circle
-       style="fill:#ff6600"
+       style="fill:#ff6600;stroke-width:6.88202"
        id="path6"
-       cx="2924.9861"
-       cy="637.61407"
-       r="63.944107" />
+       cx="18302.451"
+       cy="3061.0044"
+       r="440.06412" />
     <circle
-       style="fill:#b3b3b3"
+       style="fill:#787878;stroke-width:6.88202;fill-opacity:1"
        id="path7"
-       cx="584.6319"
-       cy="453.08963"
-       r="138.85005" />
+       cx="2196.105"
+       cy="1791.1049"
+       r="955.56775" />
     <circle
-       style="fill:#ff6600"
+       style="fill:#ff6600;stroke-width:6.88202"
        id="path8"
-       cx="1910.1018"
-       cy="648.1192"
-       r="8.221385" />
+       cx="11318.005"
+       cy="3133.3008"
+       r="56.57967" />
     <rect
-       style="fill:#ff6600;stroke-width:1.26178"
+       style="fill:#ff6600;stroke-width:8.6836"
        id="rect8"
-       width="142.80254"
-       height="55.06081"
-       x="2265.6157"
-       y="905.66046"
+       width="982.7688"
+       height="378.92917"
+       x="13688.249"
+       y="4994.4902"
        transform="matrix(0.99885654,0.04780808,-0.0599455,0.99820165,0,0)" />
     <rect
-       style="fill:#333333"
+       style="fill:#333333;stroke-width:6.88202"
        id="rect9"
-       width="359.13876"
-       height="113.68421"
-       x="3080.8613"
-       y="2263.158" />
+       width="2471.5972"
+       height="782.3761"
+       x="19375.186"
+       y="14248.017" />
     <path
-       style="fill:#9fb6ff"
-       d="m 1200,1040 80,80 200,40 80,-120"
+       style="fill:#787878;stroke-width:6.88202;fill-opacity:1"
+       d="m 6431.0757,5830.2292 550.5608,550.5608 1376.4026,275.2805 550.5608,-825.8413"
        id="path3" />
     <path
-       style="fill:#606883;fill-opacity:1;stroke:#a3afe3;stroke-width:74.4;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
-       d="m 400,1080 400,120"
+       style="fill:#787878;fill-opacity:1;stroke:#787878;stroke-width:512.021;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
+       d="M 925.46611,6105.5095 3678.271,6931.3511"
        id="path31" />
     <path
-       style="fill:#784421;fill-opacity:1;stroke:#331869;stroke-width:35.8269;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
-       d="M 2290,840 1250.2167,971.55086"
+       style="fill:#784421;fill-opacity:1;stroke:#787878;stroke-width:246.561;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
+       d="M 13932.469,4453.8266 6776.6677,5359.1614"
        id="path32"
        sodipodi:nodetypes="cc" />
+    <circle
+       style="fill:#787878;stroke-width:6.88202;fill-opacity:1"
+       id="path4"
+       cx="5811.6948"
+       cy="17323.189"
+       r="68.820114" />
+    <rect
+       style="fill:#787878;fill-opacity:1;stroke-width:21.8398"
+       id="rect4"
+       width="1797.9255"
+       height="292.4855"
+       x="5458.9912"
+       y="14389.731" />
+    <rect
+       style="fill:#787878;fill-opacity:1;stroke-width:16.5832"
+       id="rect4-52"
+       width="1036.603"
+       height="292.4855"
+       x="4499.811"
+       y="13727.338" />
+    <rect
+       style="fill:#787878;fill-opacity:1;stroke-width:32.5434"
+       id="rect4-5"
+       width="1385.0049"
+       height="843.04645"
+       x="4495.5098"
+       y="15310.2" />
+    <circle
+       style="fill:#cd572e;fill-opacity:1;stroke:#787878;stroke-opacity:1"
+       id="path5"
+       cx="4880"
+       cy="13840"
+       r="80" />
+    <circle
+       style="fill:#cd572e;fill-opacity:1;stroke:#787878;stroke-opacity:1"
+       id="path9"
+       cx="5880"
+       cy="14520"
+       r="40" />
+    <circle
+       style="fill:#cd572e;fill-opacity:1;stroke:#787878;stroke-opacity:1"
+       id="path12"
+       cx="5512.5"
+       cy="15747.5"
+       r="22.5" />
+    <circle
+       style="fill:#cd572e;fill-opacity:1;stroke:#787878;stroke-opacity:1"
+       id="path13"
+       cx="7610"
+       cy="13580"
+       r="150" />
+    <circle
+       style="fill:#cd572e;fill-opacity:1;stroke:#787878;stroke-opacity:1"
+       id="path14"
+       cx="2840"
+       cy="16920"
+       r="1000" />
+    <circle
+       style="fill:#cd572e;fill-opacity:1;stroke:#787878;stroke-opacity:1"
+       id="path15"
+       cx="3680"
+       cy="13440"
+       r="80" />
   </g>
 </svg>

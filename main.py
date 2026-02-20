@@ -20,6 +20,8 @@ BULLET_SPEED = 12e2
 DAMPING = 1
 SEGMENT_THICKNESS = 40
 GRAVITY = 600
+#SCROLLING_MARGIN = None
+SCROLLING_MARGIN = 500
 
 CENTRAL_GRAVITY_FORCE_1 =  1.6e8
 CENTRAL_GRAVITY_FORCE_2 = 8e8
@@ -214,7 +216,6 @@ class USpace(munqy.MQSpace):
                 self.gravity = (0, GRAVITY)
                 spacecraft_position = self.load_level("resources/level.svg")
 
-
         if world_arg == "P3":
             munqy.SIMULATION_TIME_STEP = 2e-3  # in sec
             munqy.HIDE_CURSOR = True
@@ -243,7 +244,8 @@ class USpace(munqy.MQSpace):
         else:
             self.set_player_item(spacecraft_item)
         self.spacecraft_item = spacecraft_item
-        self.center_view_on_player(False, True)
+        self.center_view_on_player(False, False)
+        self.center_view_on_player(False, True, scrolling_margin=SCROLLING_MARGIN)
 
         # TODO
         #self.collision_handler1 = self.add_wildcard_collision_handler(id(Bullet))
@@ -289,19 +291,19 @@ class USpace(munqy.MQSpace):
                 self.tracing_item = item
         super().set_player_item(item)
         actions_by_single_key = {
-            (Qt.NoModifier, Qt.Key_T)            : (self.toggle_trace, (item,), "toggle trace"                 ),
+            (Qt.NoModifier, Qt.Key_T)            : (self.toggle_trace, (item,),  "toggle trace"                 ),
         }
         actions_by_repeat_key = {
-            (Qt.NoModifier, Qt.Key_Up)           : (item.thrust_up, (),          "trust up / across-track"     ),
-            (Qt.NoModifier, Qt.Key_Down)         : (item.thrust_down, (),        "trust down / across-track"   ),
-            (Qt.NoModifier, Qt.Key_Left)         : (item.thrust_left,(),         "trust left / along-track"    ),
-            (Qt.NoModifier, Qt.Key_Right)        : (item.thrust_right, (),       "trust right / along-track"   ),
-            (Qt.ControlModifier, Qt.Key_Up)      : (item.thrust_up, (),          "trust up / across-track"     ),
-            (Qt.ControlModifier, Qt.Key_Down)    : (item.thrust_down, (),        "trust down / across-track"   ),
-            (Qt.ControlModifier, Qt.Key_Left)    : (item.thrust_left, (),        "trust left / along-track"    ),
-            (Qt.ControlModifier, Qt.Key_Right)   : (item.thrust_right, (),       "trust right / along-track"   ),
-            (Qt.ControlModifier, Qt.Key_Control) : (item.fire, (),               "fire"                        ),
-            (Qt.NoModifier, Qt.Key_Space)        : (item.drop_bomb, (),          "drop bomb"                   ),
+            (Qt.NoModifier, Qt.Key_Up)           : (item.thrust_up, (),          "thrust up / across-track"     ),
+            (Qt.NoModifier, Qt.Key_Down)         : (item.thrust_down, (),        "thrust down / across-track"   ),
+            (Qt.NoModifier, Qt.Key_Left)         : (item.thrust_left,(),         "thrust left / along-track"    ),
+            (Qt.NoModifier, Qt.Key_Right)        : (item.thrust_right, (),       "thrust right / along-track"   ),
+            (Qt.ControlModifier, Qt.Key_Up)      : (item.thrust_up, (),          "thrust up / across-track"     ),
+            (Qt.ControlModifier, Qt.Key_Down)    : (item.thrust_down, (),        "thrust down / across-track"   ),
+            (Qt.ControlModifier, Qt.Key_Left)    : (item.thrust_left, (),        "thrust left / along-track"    ),
+            (Qt.ControlModifier, Qt.Key_Right)   : (item.thrust_right, (),       "thrust right / along-track"   ),
+            (Qt.ControlModifier, Qt.Key_Control) : (item.fire, (),               "fire"                         ),
+            (Qt.NoModifier, Qt.Key_Space)        : (item.drop_bomb, (),          "drop bomb"                    ),
         }
         self.add_key_mapping(actions_by_single_key, actions_by_repeat_key)
 
@@ -764,7 +766,7 @@ class Bomb(munqy.SegmentItem):
 
     def do_finalize(self):
         #uspace.beep(200, 250)
-        Sound.explosion2.play_once()
+        Sound.explosion2.play_once(volume=400000/uspace.distance_player_item(self)**2)
         #winsound.Beep(440,250)
         #winsound.PlaySound("explosion1.wav",winsound.SND_ASYNC)
         (x,y) = self.position

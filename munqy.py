@@ -26,7 +26,7 @@ WIREFRAME_MODE = False
 WIREFRAME_OPAQUE = False
 TRACE_LENGTH = 10
 MOUSE_BUTTON = 0x40000000
-UNIVERSE_SIZE = 8000
+UNIVERSE_SIZE = 100000
 HIDE_CURSOR_DELAY = 2   # in sec
 ANTIALIASING = False
 SHOW_VELOCITY = False
@@ -579,7 +579,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
     trace_pen = QPen(Qt.white)
     trace_pen.setWidth(0)
 
-    def __init__(self):
+    def __init__(self, scrolling_margin=None):
         global space
         space = self
         pymunk.Space.__init__(self)
@@ -603,7 +603,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         self.items_to_remove = set()
         self.items_to_set_kinematic = set()
         self.kinematic_items = []
-        self.main_window = MainWindow(self)
+        self.main_window = MainWindow(self, scrolling_margin)
         self.main_view = self.main_window.main_view
         self.time = 0.0
         self.dt_s = None
@@ -653,6 +653,9 @@ class MQSpace(pymunk.Space, QGraphicsScene):
     def set_player_item(self, item):
         self.player_item = item
 
+    def distance_player_item(self, item):
+        return self.player_item.position.get_distance(item.position)
+
     def set_attractive_item(self, item, force, radius):
         self.attractive_item = item
         self.attractive_item_force = force
@@ -661,8 +664,8 @@ class MQSpace(pymunk.Space, QGraphicsScene):
     def center_view_on_central_item(self, with_rotation, permanent):
         self.main_view.center_on_item(self.central_item, with_rotation, permanent, False)
 
-    def center_view_on_player(self, with_rotation, permanent):
-        self.main_view.center_on_item(self.player_item, with_rotation, permanent, True)
+    def center_view_on_player(self, with_rotation, permanent, scrolling_margin=False):
+        self.main_view.center_on_item(self.player_item, with_rotation, permanent, True, scrolling_margin)
 
     def toggle_trace(self, item):
         if self.tracing_item is item:
@@ -711,14 +714,13 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         if self.tracing_item:
             self.draw_trace()
         self.treat_keys_and_buttons()
-        self.do_timer_event()
         for item in self.items_to_remove:
             self.remove_item(item)
         self.items_to_remove.clear()
         self.time += self.dt_s
         # pymunk simulation
         self.step(self.dt_s)
-        # self.step(SIMULATION_TIME_STEP)
+        self.do_timer_event()
         for view in self.views():
             view.do_timer_event()
 
@@ -917,14 +919,24 @@ class MQSpace(pymunk.Space, QGraphicsScene):
             compound_item.qg_item.removeFromGroup(item.qg_item)
 
     def load_level(self, svg_filename):
-        from svgelements import SVG, Path, Rect, Text, Circle
+        from svgelements import SVG, SVGElement, Path, Rect, Text, Circle, Point
         s_pos = (0, 0)
+        wall_color_code = None
         svg = SVG.parse(svg_filename)
         for svg_element in svg.elements():
-            if isinstance(svg_element, Text):
+            if type(svg_element) is SVGElement:
+                if wall_color_code is None:
+                    wall_color_code = svg_element.values.get("pagecolor")
+                    if wall_color_code is None:
+                        wall_color_brush = QBrush(Qt.darkGray)
+                    else:
+                        wall_color_brush = QBrush(QColor(wall_color_code))
+            elif isinstance(svg_element, Text):
                 # TODO NOK svg_element.text is None (due to "tspan" child)
                 if svg_element.text == "S":
-                    s_pos = (svg_element.x, svg_element.y)
+                    true_pos = Point(svg_element.x, svg_element.y) * svg_element.transform
+                    s_pos = (true_pos.x, true_pos.y)
+                    #s_pos = (svg_element.x, svg_element.y)
             elif isinstance(svg_element, Rect):
                 w = svg_element.width
                 h = svg_element.height
@@ -964,19 +976,18 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                     #vertices += ((x - BORDER_WIDTH, y - BORDER_WIDTH),)
                     self.add_polygon_item((0,0), 0., vertices=vertices, friction=0.5,
                                           body_type=STATIC,
-                                          #color=Qt.darkGray)
-                                          brush=QBrush(Qt.darkGray))
+                                          brush=wall_color_brush)
         return s_pos
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, space):
+    def __init__(self, space, scrolling_margin=None):
         QMainWindow.__init__(self)
         self.installEventFilter(self)
         # self.setWindowFlags(Qt.CustomizeWindowHint | Qt.FramelessWindowHint)
         # self.setWindowFlags(Qt.FramelessWindowHint)
         self.setWindowState(self.windowState() | Qt.WindowFullScreen)
-        self.main_view = View(self, space)
+        self.main_view = View(self, space, scrolling_margin)
         self.setCentralWidget(self.main_view)
         # self.setCursor(Qt.BlankCursor)
         self.main_view.setFocus(Qt.OtherFocusReason)
@@ -984,7 +995,10 @@ class MainWindow(QMainWindow):
 
 class View(QGraphicsView):
 
-    def __init__(self, parent, space1):
+    __slots__ = ("h_scrollbar", "v_scrollbar", "_width", "_height", "_center_x", "_center_y", "scrolling_margin",
+                 "hideCursorTimer")
+
+    def __init__(self, parent, space1, scrolling_margin):
         QGraphicsView.__init__(self, space1, parent)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -1001,6 +1015,12 @@ class View(QGraphicsView):
         self.h_scrollbar = self.horizontalScrollBar()
         self.v_scrollbar = self.verticalScrollBar()
         self.rotation = 0.0
+        self._width = None
+        self._height = None
+        self._center_x = None
+        self._center_y = None
+        self.scrolling_margin = scrolling_margin
+        self.hideCursorTimer = None
         # self.central_item = None
         # self.is_view_centering_on_player = False
         self.view_center_item = None
@@ -1008,19 +1028,26 @@ class View(QGraphicsView):
         self.view_center_with_centering = False
         if HIDE_CURSOR_DELAY > 0:
             self.setMouseTracking(True)
-        self.hideCursor()
+        self.hide_cursor()
 
-    def hideCursor(self):
+    def resizeEvent(self, resize_event):
+        QGraphicsView.resizeEvent(self, resize_event)
+        self._width = self.width()
+        self._height = self.height()
+        self._center_x = self._width // 2
+        self._center_y = self._height // 2
+
+    def hide_cursor(self):
         self.hideCursorTimer = None
         app.setOverrideCursor(Qt.BlankCursor)
 
-    def mouseMoveEvent(self, mouseEvent):
-        QGraphicsView.mouseMoveEvent(self, mouseEvent)
+    def mouseMoveEvent(self, mouse_event):
+        QGraphicsView.mouseMoveEvent(self, mouse_event)
         if self.hideCursorTimer is None:
             app.setOverrideCursor(Qt.CrossCursor)
             self.hideCursorTimer = QTimer()
             self.hideCursorTimer.setSingleShot(True)
-            self.hideCursorTimer.timeout.connect(self.hideCursor)
+            self.hideCursorTimer.timeout.connect(self.hide_cursor)
             self.hideCursorTimer.start(1000 * HIDE_CURSOR_DELAY)
         else:
             self.hideCursorTimer.stop()
@@ -1033,9 +1060,10 @@ class View(QGraphicsView):
 
     def do_timer_event(self):
         if self.view_center_item is not None:
-            self.center_on(self.view_center_item, self.view_center_with_rotation, self.view_center_with_centering)
+            self.center_on(self.view_center_item, self.view_center_with_rotation, self.view_center_with_centering,
+                           self.scrolling_margin)
 
-    def center_on_item(self, item, with_rotation, permanent, with_centering):
+    def center_on_item(self, item, with_rotation, permanent, with_centering, scrolling_margin=None):
         if permanent:
             if self.view_center_item is item:
                 self.view_center_item = None
@@ -1043,20 +1071,39 @@ class View(QGraphicsView):
             else:
                 self.view_center_item = item
                 self.view_center_with_rotation = with_rotation
+                self.scrolling_margin = scrolling_margin
             self.view_center_with_centering = with_centering
         else:
             self.view_center_item = None
             self.view_center_with_rotation = None
-            self.center_on(item, with_rotation, with_centering)
+            self.center_on(item, with_rotation, with_centering, None)
 
-    def center_on(self, item, with_rotation, with_centering):
+    def center_on(self, item, with_rotation, with_centering, scrolling_margin=None):
         if item is not None:
             if with_rotation:
                 rotation = -item.qg_item.rotation()
                 self.rotate(-self.rotation + rotation)
                 self.rotation = rotation
             if with_centering:
-                self.centerOn(item.qg_item)
+                if scrolling_margin is None:
+                    self.centerOn(item.qg_item)
+                    self.centerOn(item.qg_item)
+                else:
+                    p = self.mapFromScene(item.qg_item.scenePos())
+                    x = p.x()
+                    y = p.y()
+                    dx = 0
+                    dy = 0
+                    if x < scrolling_margin:
+                        dx = x - scrolling_margin
+                    elif x > self._width - scrolling_margin:
+                        dx = x - self._width + scrolling_margin
+                    if y < scrolling_margin:
+                        dy = y - scrolling_margin
+                    elif y > self._height - scrolling_margin:
+                        dy = y - self._height + scrolling_margin
+                    if dx != 0 or dy != 0:
+                        self.centerOn(self.mapToScene(self._center_x+dx, self._center_y++dy))
 
     def recenter(self, with_rotation):
         if space.central_item is not None:
