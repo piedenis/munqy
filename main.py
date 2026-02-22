@@ -102,14 +102,10 @@ class USpace(munqy.MQSpace):
                                           body_type=munqy.STATIC)
                 self.add_item(MovingPlatform((600, -250), 0, (200, 20), ay=400.0))
                 self.add_item(MovingPlatform((230, 80), 0, (240, 10), ax=60.0))
-                t = datetime.now()
-                position = (250, -800)
-                radius = 450
-                #self.add_circle_item(position, 0, radius, color=Qt.darkGray, is_airy=True, body_type=munqy.STATIC)
-                self.add_circle_item(position, 0, radius, brush=QBrush(QColor(10,10,10)), is_airy=True, body_type=munqy.STATIC)
-                self.add_item(ClockHand(position, (radius*0.6, 28), 60*60, 12, t.hour % 12 + t.minute/60 + t.second/3600))
-                self.add_item(ClockHand(position, (radius*0.9, 28),    60, 60, t.minute + t.second/60))
-                self.add_item(ClockHand(position, (radius*0.9, 12),     1, 60, t.second, color=Qt.darkBlue))
+                self.add_clock_item((250, -800), 450)
+                self.add_clock_item((-7000, -400), 5000)
+                self.add_clock_item((-400, 400), 50)
+
 
             elif world_arg == "2":
                 brush1 = QBrush(QColor(30, 30, 55))
@@ -224,6 +220,7 @@ class USpace(munqy.MQSpace):
             elif world_arg == "8":
                 self.gravity = (0, GRAVITY)
                 spacecraft_position = self.load_level("resources/level.svg")
+                self.add_clock_item((5250, 7800), 450)
 
         if world_arg == "P3":
             munqy.SIMULATION_TIME_STEP = 2e-3  # in sec
@@ -459,6 +456,14 @@ class USpace(munqy.MQSpace):
         if self.spacecraft_item_osc is not None:
             self.spacecraft_item_osc.stabilize()
     """
+
+    def add_clock_item(self, position, radius):
+        t = datetime.now()
+        for item in (munqy.CircleItem(position, 0, radius, brush=QBrush(QColor(10, 10, 10)), is_airy=True, body_type=munqy.STATIC),
+                     ClockHand(position, (radius * 0.6, max(12, radius*0.1  )), 60 * 60, 12, t.hour % 12 + t.minute / 60 + t.second / 3600),
+                     ClockHand(position, (radius * 0.9, max(12, radius*0.1  )), 60, 60, t.minute + t.second / 60),
+                     ClockHand(position, (radius * 0.9, max( 6, radius*0.025)), 1, 60, t.second, color=Qt.darkBlue)):
+            self.add_item(item)
 
 class AbstractSpacecraftItem(munqy.CompoundItem):
 
