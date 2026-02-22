@@ -35,6 +35,7 @@ import munqy
 import sys
 from math import pi, cos, sin, atan2, hypot
 from random import uniform
+from datetime import datetime
 
 PI2 = 2 * pi
 
@@ -58,7 +59,6 @@ class USpace(munqy.MQSpace):
         self.label.setStyleSheet("QLabel { font-size: 80px; color : white; }")
         # self.label.setText(256*"X")
         self.label.hide()
-
         Sound.say("3, 2, 1, GO!")
 
     def do_initial_setup(self):
@@ -100,8 +100,17 @@ class USpace(munqy.MQSpace):
                                           color=Qt.darkGray,
                                           elasticity=1, friction=0.6,
                                           body_type=munqy.STATIC)
-                self.add_item(Platform((600, -250), 0, (200, 20), ay=400.0))
-                self.add_item(Platform((230, 80), 0, (240, 10), ax=60.0))
+                self.add_item(MovingPlatform((600, -250), 0, (200, 20), ay=400.0))
+                self.add_item(MovingPlatform((230, 80), 0, (240, 10), ax=60.0))
+                t = datetime.now()
+                position = (250, -800)
+                radius = 450
+                #self.add_circle_item(position, 0, radius, color=Qt.darkGray, is_airy=True, body_type=munqy.STATIC)
+                self.add_circle_item(position, 0, radius, brush=QBrush(QColor(10,10,10)), is_airy=True, body_type=munqy.STATIC)
+                self.add_item(ClockHand(position, (radius*0.6, 28), 60*60, 12, t.hour % 12 + t.minute/60 + t.second/3600))
+                self.add_item(ClockHand(position, (radius*0.9, 28),    60, 60, t.minute + t.second/60))
+                self.add_item(ClockHand(position, (radius*0.9, 12),     1, 60, t.second, color=Qt.darkBlue))
+
             elif world_arg == "2":
                 brush1 = QBrush(QColor(30, 30, 55))
                 n = 120
@@ -726,14 +735,14 @@ class ParticleItem(munqy.CircleItem):
         munqy.CircleItem.__init__(self, position, 0.0, velocity=velocity, radius=0.75, brush=brush, **kwds)
 
 
-class Platform(munqy.SegmentItem):
+class MovingPlatform(munqy.SegmentItem):
 
     __slots__ = ("_ax", "_ay", "_t")
 
-    def __init__(self,position,angle,size,ax=0.0,ay=0.0,):
+    def __init__(self, position, angle, size, ax=0.0, ay=0.0,):
         munqy.SegmentItem.__init__(self, position, angle, size=size,
                                    body_type=munqy.KINEMATIC,
-                                   color=Qt.gray, density=4.0e10, elasticity=0.25, friction=0.5)
+                                   color=Qt.gray, density=4.0e10, elasticity=0.25, friction=2.5)
         self._ax = ax
         self._ay = ay
         self._t = 0.0
@@ -745,23 +754,35 @@ class Platform(munqy.SegmentItem):
         #s = sin(uspace.time/uspace.dt_s*PI2 / 200)
         self._dt = PI2 / 200 * uspace.dt_s / munqy.TIMER_ELAPSE
         self._t = (self._t+self._dt) % PI2
-        self.velocity = (self._ax*s,self._ay*s)
+        self.velocity = (self._ax*s, self._ay*s)
+
+
+class ClockHand(munqy.SegmentItem):
+
+    def __init__(self, position, size, duration_per_cycle, nb_steps, current_hand_time, color=Qt.gray, **kwargs):
+        x = 2*pi / nb_steps
+        munqy.SegmentItem.__init__(self, position, angle=x*current_hand_time - pi/2, size=size,
+                                         is_center_at_start=True,
+                                         body_type=munqy.KINEMATIC,
+                                         color=color, density=4.0e10, elasticity=0.25, friction=2.5, **kwargs)
+        self.angular_velocity = x / duration_per_cycle * munqy.TIMER_ELAPSE / munqy.SIMULATION_TIME_STEP
 
 
 class Bullet(munqy.SegmentItem):
 
-    def __init__(self,position,angle,velocity,delay_s):
-        munqy.SegmentItem.__init__(self,position,angle,velocity=velocity,size=(4,2),
-                                   color=Qt.yellow,density=4.0e10,elasticity=0.25,friction=0.5,
-                                   duration_s=delay_s,with_fading=True)
+    def __init__(self, position, angle, velocity, delay_s):
+        munqy.SegmentItem.__init__(self, position, angle, velocity=velocity, size=(4, 2),
+                                   color=Qt.yellow, density=4.0e10, elasticity=0.25, friction=0.5,
+                                   duration_s=delay_s, with_fading=True)
 
 class Bomb(munqy.SegmentItem):
 
     brush = QBrush(QColor(255, 155, 155))
 
     def __init__(self,position,angle,velocity,delay_s):
-        munqy.SegmentItem.__init__(self,position,angle,velocity=velocity,size=(4,3),
-                                   color=Qt.red,density=4.0e10,elasticity=0.25,friction=0.5,
+        munqy.SegmentItem.__init__(self, position, angle, velocity=velocity, size=(4,3),
+                                   #is_center_at_start=True,
+                                   color=Qt.red, density=4.0e10, elasticity=0.25, friction=0.5,
                                    duration_s=delay_s)
 
     def do_finalize(self):

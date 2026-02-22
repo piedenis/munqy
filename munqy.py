@@ -28,7 +28,7 @@ TRACE_LENGTH = 10
 MOUSE_BUTTON = 0x40000000
 UNIVERSE_SIZE = 100000
 HIDE_CURSOR_DELAY = 2   # in sec
-ANTIALIASING = False
+ANTIALIASING = True
 SHOW_VELOCITY = False
 
 
@@ -407,7 +407,7 @@ class SegmentShaqe(Shaqe):
 
     pen_dict = {}
 
-    def __init__(self, size, color_name, offset=(0., 0.), is_airy=False, **kwargs):
+    def __init__(self, size, color_name, offset=(0., 0.), is_airy=False, is_center_at_start=False, **kwargs):
         (width, height) = size
         w2 = width / 2.0
         h2 = height / 2.0
@@ -415,26 +415,31 @@ class SegmentShaqe(Shaqe):
         if pen is None:
             pen = SegmentItem.pen_dict[(color_name, height)] = QPen(QColor(color_name), height, cap=Qt.RoundCap)
         (cx, cy) = offset
-        shapes = (pymunk.Segment(None, a=(cx - w2, cy), b=(cx + w2, cy), radius=h2),) if not is_airy else ()
+        if is_center_at_start:
+            ax = cx
+            bx = cx + width
+        else:
+            ax = cx - w2
+            bx = cx + w2
+        shapes = (pymunk.Segment(None, a=(ax, cy), b=(bx, cy), radius=h2),) if not is_airy else ()
         if WIREFRAME_MODE:
             qg_item = QGraphicsItemGroup()
             if WIREFRAME_OPAQUE:
-                f = QGraphicsLineItem(cx - w2, cy, cx + w2, cy)
+                f = QGraphicsLineItem(ax, cy, bx, cy)
                 f.setPen(QPen(Qt.black, height, cap=Qt.RoundCap))
                 qg_item.addToGroup(f)
-            qg_item.addToGroup(QGraphicsLineItem(cx - w2, cy - h2, cx + w2, cy - h2))
-            qg_item.addToGroup(QGraphicsLineItem(cx - w2, cy + h2, cx + w2, cy + h2))
-            # left_arc = QGraphicsEllipseItem(cx-w2-h2,cy-h2,height,height)
-            left_arc = QGraphicsArcItem(cx - w2 - h2, cy - h2, height, height)
+            qg_item.addToGroup(QGraphicsLineItem(ax, cy - h2, bx, cy - h2))
+            qg_item.addToGroup(QGraphicsLineItem(ax, cy + h2, bx, cy + h2))
+            left_arc = QGraphicsArcItem(ax - h2, cy - h2, height, height)
             left_arc.setStartAngle(+90 * 16)
             left_arc.setSpanAngle(180 * 16)
             qg_item.addToGroup(left_arc)
-            right_arc = QGraphicsArcItem(cx + w2 - h2, cy - h2, height, height)
+            right_arc = QGraphicsArcItem(bx - h2, cy - h2, height, height)
             right_arc.setStartAngle(-90 * 16)
             right_arc.setSpanAngle(180 * 16)
             qg_item.addToGroup(right_arc)
         else:
-            qg_item = QGraphicsLineItem(cx - w2, cy, cx + w2, cy)
+            qg_item = QGraphicsLineItem(ax, cy, bx, cy)
         Shaqe.__init__(self, qg_item, *shapes, pen=pen, **kwargs)
 
     def set_pen(self, pen):
@@ -574,7 +579,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                  "central_item", "player_item", "items_to_remove", "items_to_set_kinematic",
                  "kinematic_items", "main_window", "main_view", "time", "tracing_item",
                  "trace_counter", "trace_prev_position", "actions_by_single_key",
-                 "actions_by_repeat_key", "dt_s")
+                 "actions_by_repeat_key", "dt_s", "timer_elapse")
 
     trace_pen = QPen(Qt.white)
     trace_pen.setWidth(0)
@@ -607,6 +612,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         self.main_view = self.main_window.main_view
         self.time = 0.0
         self.dt_s = None
+        self.timer_elapse = None
         self.tracing_item = None
         self.trace_counter = None
         self.trace_prev_position = None
@@ -681,9 +687,10 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         # self.main_window.main_view.recenter(with_rotation=False)
         self.main_view.setTransformationAnchor(QGraphicsView.NoAnchor)
 
-    def start(self, dt_s=TIMER_ELAPSE):
-        self.dt_s = dt_s
-        self.timer.start(int(dt_s * 1e3))
+    def start(self, simulator_time_step=SIMULATION_TIME_STEP, timer_elapse=TIMER_ELAPSE):
+        self.dt_s = simulator_time_step
+        self.timer_elapse = timer_elapse
+        self.timer.start(int(timer_elapse * 1e3))
         sys.exit(app.exec_())
 
     def stop(self):
@@ -940,10 +947,15 @@ class MQSpace(pymunk.Space, QGraphicsScene):
             elif isinstance(svg_element, Rect):
                 w = svg_element.width
                 h = svg_element.height
-                self.add_rect_item((svg_element.x+w/2, svg_element.y+h/2), 1*svg_element.rotation,
+                r = self.add_rect_item((svg_element.x+w/2, svg_element.y+h/2), 1*svg_element.rotation,
                                    size=(w, h),
                                    body_type=STATIC,
-                                   brush=QBrush(QColor(svg_element.fill.rgb)))
+                                   is_airy=(svg_element.fill.alpha<255),
+                                   #brush=QBrush(QColor(svg_element.fill.rgb)))
+                                   brush=QBrush(QColor(svg_element.fill.red, svg_element.fill.green, svg_element.fill.blue,
+                                                       svg_element.fill.alpha)))
+                if svg_element.fill.alpha<255:
+                    r.qg_item.setZValue(1)
             elif isinstance(svg_element, Circle):
                 assert svg_element.rx==svg_element.ry
                 self.add_circle_item((svg_element.cx, svg_element.cy), 0,
@@ -973,8 +985,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                                 (x     - BORDER_WIDTH , y + h + BORDER_WIDTH),
                                 (x     - BORDER_WIDTH+1e-6, y   - BORDER_WIDTH)) \
                                + inner_vertices + (inner_vertices[0],)
-                    #vertices += ((x - BORDER_WIDTH, y - BORDER_WIDTH),)
-                    self.add_polygon_item((0,0), 0., vertices=vertices, friction=0.5,
+                    self.add_polygon_item((x, y), 0., vertices=vertices, friction=0.5,
                                           body_type=STATIC,
                                           brush=wall_color_brush)
         return s_pos
