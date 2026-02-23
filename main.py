@@ -221,6 +221,9 @@ class USpace(munqy.MQSpace):
                 self.gravity = (0, GRAVITY)
                 spacecraft_position = self.load_level("resources/level.svg")
                 self.add_clock_item((5250, 7800), 450)
+                self.add_item(MovingPlatform((5100, 6050), 0, (800, 200), ay=400.0))
+                self.add_item(MovingPlatform((6000, 6020), 0, (500, 200), ax=200.0))
+                self.add_item(MovingPlatform((6500, 7020), 0, (800, 200), ax=150.0))
 
         if world_arg == "P3":
             munqy.SIMULATION_TIME_STEP = 2e-3  # in sec
@@ -747,7 +750,7 @@ class MovingPlatform(munqy.SegmentItem):
     def __init__(self, position, angle, size, ax=0.0, ay=0.0,):
         munqy.SegmentItem.__init__(self, position, angle, size=size,
                                    body_type=munqy.KINEMATIC,
-                                   color=Qt.gray, density=4.0e10, elasticity=0.25, friction=2.5)
+                                   color=Qt.gray, density=4.0e10, elasticity=0.25, friction=20.0)
         self._ax = ax
         self._ay = ay
         self._t = 0.0

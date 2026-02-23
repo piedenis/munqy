@@ -338,7 +338,11 @@ class PolygonShaqe(Shaqe):
         if vertices[0] != vertices[-1]:
             vertices.append(vertices[0])
         vertices = tuple(vertices)
-        convex_polygons = pymunk.autogeometry.convex_decomposition(vertices, tolerance=0.1)
+        try:
+            convex_polygons = pymunk.autogeometry.convex_decomposition(vertices, tolerance=0.1)
+        except AssertionError:
+            vertices = vertices[::-1]
+            convex_polygons = pymunk.autogeometry.convex_decomposition(vertices, tolerance=0.1)
         if is_airy:
             shapes = ()
         else:
@@ -949,7 +953,8 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                 h = svg_element.height
                 r = self.add_rect_item((svg_element.x+w/2, svg_element.y+h/2), 1*svg_element.rotation,
                                    size=(w, h),
-                                   body_type=STATIC,
+                                   body_type=DYNAMIC if svg_element.id.startswith("m") else STATIC,
+                                   density=0.25e11,
                                    is_airy=(svg_element.fill.alpha<255),
                                    #brush=QBrush(QColor(svg_element.fill.rgb)))
                                    brush=QBrush(QColor(svg_element.fill.red, svg_element.fill.green, svg_element.fill.blue,
@@ -960,7 +965,8 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                 assert svg_element.rx==svg_element.ry
                 self.add_circle_item((svg_element.cx, svg_element.cy), 0,
                                    svg_element.rx,
-                                   body_type=STATIC,
+                                   body_type=DYNAMIC if svg_element.id.startswith("m") else STATIC,
+                                   density=0.25e11,
                                    brush=QBrush(QColor(svg_element.fill.rgb)))
             elif isinstance(svg_element, Path):
                 if svg_element.stroke.rgb is not None:
@@ -971,10 +977,11 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                                                     body_type=STATIC)
                 elif svg_element.fill.rgb > 0:
                     vertices = tuple(tuple(point) for point in tuple(svg_element.as_points())[::2])
-                    self.add_polygon_item((0, 0), 0., vertices=vertices[::-1], friction=0.5,
-                                          body_type=STATIC,
-                                          #color=svg_element.fill.rgb)
-                                          brush=QBrush(QColor(svg_element.fill.rgb)))
+                    self.add_polygon_item((0, 0), 0., vertices=vertices[::-1], friction=1.5,
+                                           body_type=DYNAMIC if svg_element.id.startswith("m") else STATIC,
+                                           density=0.1e11,
+                                           #color=svg_element.fill.rgb)
+                                           brush=QBrush(QColor(svg_element.fill.rgb)))
                 else:
                     BORDER_WIDTH = 1000
                     (x, y, w, h) = svg_element.bbox()
