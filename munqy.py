@@ -977,9 +977,9 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                                                     body_type=STATIC)
                 elif svg_element.fill.rgb > 0:
                     vertices = tuple(tuple(point) for point in tuple(svg_element.as_points())[::2])
-                    self.add_polygon_item((0, 0), 0., vertices=vertices[::-1], friction=1.5,
+                    self.add_polygon_item((0, 0), 0., vertices=vertices[::-1], friction=0.8,
                                            body_type=DYNAMIC if svg_element.id.startswith("m") else STATIC,
-                                           density=0.1e11,
+                                           density=0.3e11,
                                            #color=svg_element.fill.rgb)
                                            brush=QBrush(QColor(svg_element.fill.rgb)))
                 else:

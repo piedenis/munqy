@@ -20,6 +20,9 @@ BULLET_SPEED = 12e2
 DAMPING = 1
 SEGMENT_THICKNESS = 40
 GRAVITY = 600
+THRUST_UP = 8.0e15
+THRUST_DOWN = 3.0e15
+THRUST_LATERAL = 0.25e16
 #SCROLLING_MARGIN = None
 SCROLLING_MARGIN = 500
 
@@ -27,6 +30,8 @@ CENTRAL_GRAVITY_FORCE_1 =  1.6e8
 CENTRAL_GRAVITY_FORCE_2 = 8e8
 ANGULAR_VELOCITY = 1*0.5
 SPACECRAFT_STABILIZATION = True
+
+THRUST_UP_HALF = THRUST_UP / 2
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QRadialGradient, QBrush, QPen, QColor, QCursor
@@ -603,20 +608,20 @@ class SpacecraftItem(AbstractSpacecraftItem):
 
     def thrust_up(self):
         Sound.thrust4.play_long()
-        self.activate_thruster((0, -4.0e15), (-3, -11))
-        self.activate_thruster((0, -4.0e15), (+3, -11))
+        self.activate_thruster((0, -THRUST_UP_HALF), (-3, -11))
+        self.activate_thruster((0, -THRUST_UP_HALF), (+3, -11))
 
     def thrust_down(self):
         Sound.thrust5.play_long()
-        self.activate_thruster((0.0, +3e15), (0, +11))
+        self.activate_thruster((0.0, +THRUST_DOWN), (0, +11))
 
     def thrust_left(self):
         Sound.thrust5.play_long()
-        self.activate_thruster((-0.25e16, 0.0), (+19, 0))
+        self.activate_thruster((-THRUST_LATERAL, 0.0), (+19, 0))
 
     def thrust_right(self):
         Sound.thrust5.play_long()
-        self.activate_thruster((+0.25e16, 0.0), (-19, 0))
+        self.activate_thruster((+THRUST_LATERAL, 0.0), (-19, 0))
 
     def fire(self):
         if uspace.time >= self.bullet_ready_time:
