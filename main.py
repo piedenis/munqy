@@ -17,7 +17,7 @@ BOMB_EXPLOSION_DELAY_S = 4.0
 BULLET_REARM_DELAY_S = 0.2
 BULLET_LIFETIME_S = 2.0
 BULLET_SPEED = 12e2
-DAMPING = 1
+DAMPING = 1 # 0.01
 SEGMENT_THICKNESS = 40
 GRAVITY = 600
 THRUST_UP = 8.0e15
@@ -128,11 +128,12 @@ class USpace(munqy.MQSpace):
                                                          angular_velocity=ANGULAR_VELOCITY)
                 self.set_attractive_item(attractive_item, CENTRAL_GRAVITY_FORCE_2, WORLD2_RADIUS)
                 self.set_central_item(attractive_item)
-            elif world_arg[-1] in ("3", "4"):
+            elif world_arg[-1] in ("3", "4", "9"):
+                alpha = 128 if world_arg[-1] == "9" else 255
                 radial_grad = QRadialGradient(0, 0, WORLD_RADIUS)
                 radial_grad.setColorAt(0.00, Qt.black)
-                radial_grad.setColorAt(0.85, QColor(0, 0, 80))
-                radial_grad.setColorAt(1.00, QColor(0, 0, 128))
+                radial_grad.setColorAt(0.85, QColor(0, 0, 80, alpha))
+                radial_grad.setColorAt(1.00, QColor(0, 0, 128, alpha))
                 brush1 = QBrush(radial_grad)
                 # circle_shaqe1 = self.add_circle_item((0., 0.), 0., WORLD_RADIUS, density=1e13, brush=brush1,
                 #                                      #velocity=(0., 0.), angular_velocity=ANGULAR_VELOCITY,
@@ -141,12 +142,15 @@ class USpace(munqy.MQSpace):
                 circle_shaqe1 = munqy.CircleShaqe(WORLD_RADIUS, density=1e13, brush=brush1,
                                                         elasticity=1, friction=1.6)
                                                         #body_type=munqy.STATIC)
-                if world_arg[-1] == "3":
+                if world_arg[-1] == "3" or world_arg[-1] == "9":
                     brush1 = QBrush(QColor(150, 150, 250))
                     circle_shaqe2 = munqy.CircleShaqe(10, offset=(WORLD_RADIUS - 20, 0), density=1e13, brush=brush1,
                                                       is_airy=True)
                     attractive_item = self.add_compound_item((0., 0.), 0., circle_shaqe1, circle_shaqe2,
-                                                             angular_velocity=4*ANGULAR_VELOCITY)
+                                                             angular_velocity=4*ANGULAR_VELOCITY,
+                                                             liquid_damping=0.99 if world_arg[-1] == "9" else None)
+                    if world_arg[-1] == "9":
+                        attractive_item.qg_item.setZValue(1)
                 else:
                     attractive_item = self.add_compound_item((0., 0.), 0., circle_shaqe1,
                                                              is_airy=True,
@@ -213,19 +217,15 @@ class USpace(munqy.MQSpace):
                 r2 = r1 - 500
                 ring_vertices = tuple((-r1 * sin(k * t), r1 * cos(k * t)) for t in range(n)) \
                               + tuple((-r2 * sin(k * t), r2 * cos(k * t)) for t in range(n - 1, -1, -1))
-                              #+ tuple((-r2 * sin(k * t), r2 * cos(k * t)) for t in range(n-1, -1, -1))
-                #ring_vertices = ((0,0), (0,400), (400,400), (200, 0))[::-1]
                 ring_item = self.add_polygon_item((0., 0.), 0., ring_vertices, angular_velocity=ANGULAR_VELOCITY,
                                                   moment=float('inf'),
-                                                  #moment=100,
-                                                  #velocity=(0, 0),
                                                   density=1e13, brush=brush1, elasticity=0.1, friction=1.4)
                 self.add_item(ring_item)
                 self.set_central_item(ring_item)
             elif world_arg == "8":
                 self.gravity = (0, GRAVITY)
-                spacecraft_position = self.load_level("resources/level.svg")
                 self.add_clock_item((5250, 7800), 450)
+                spacecraft_position = self.load_level("resources/level.svg")
                 self.add_item(MovingPlatform((5100, 6050), 0, (800, 200), ay=400.0))
                 self.add_item(MovingPlatform((6000, 6020), 0, (500, 200), ax=200.0))
                 self.add_item(MovingPlatform((6500, 7020), 0, (800, 200), ax=150.0))
@@ -278,6 +278,7 @@ class USpace(munqy.MQSpace):
             (Qt.NoModifier, Qt.Key_Plus)         : (self.increase_speed, (),                          "increase simulation speed"                          ),
             (Qt.NoModifier, Qt.Key_Equal)        : (self.increase_speed, (),                          "increase simulation speed"                          ),
             (Qt.NoModifier, Qt.Key_S)            : (self.separate_spacecrafts, (),                    "separate spacecrafts"                               ),
+            (Qt.NoModifier, Qt.Key_M)            : (self.toggle_mouse_hook, (),                       "toggle mouse hook"                                  ),
             (Qt.ShiftModifier|munqy.MOUSE_BUTTON, Qt.LeftButton)  : (self.drop_item3, (),             "drop new item type #3"                              ),
             (Qt.ShiftModifier|munqy.MOUSE_BUTTON, Qt.RightButton) : (self.drop_item4, (),             "drop new item type #4"                              )
         }
@@ -812,13 +813,13 @@ class Bomb(munqy.SegmentItem):
                        body_type=munqy.KINEMATIC,is_airy=True,
                        duration_s=0.5,with_fading=True)
         for _ in range(50):
-            a = uniform(0,2*pi)
-            (dx,dy) = (cos(a),sin(a))            
-            position = (x+2*dx,y+2*dy)
-            v = uniform(0.5,1.5) * 1e3
+            a = uniform(0, 2*pi)
+            (dx,dy) = (cos(a), sin(a))
+            position = (x+2*dx, y+2*dy)
+            v = uniform(0.5, 1.5) * 1e3
             velocity = (vx+v*dx, vy+v*dy)
             uspace.add_item(ParticleItem(position,velocity,Bomb.brush,
-                                         density=4.0e12,elasticity=0.65,friction=1,
+                                         density=4.0e12, elasticity=0.65, friction=1,
                                          duration_s=0.3))
 
 #QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)

@@ -30,6 +30,10 @@ UNIVERSE_SIZE = 100000
 HIDE_CURSOR_DELAY = 2   # in sec
 ANTIALIASING = True
 SHOW_VELOCITY = False
+MOUSE_HOOK_RADIUS = 20
+# value to set in pymunk.Space.collision_bias (None means pymunk default)
+#COLLISION_BIAS = None
+COLLISION_BIAS = 0.00001
 
 
 class Item(pymunk.Body):
@@ -46,7 +50,7 @@ class Item(pymunk.Body):
     """
 
     __slots__ = ('shaqe', 'qg_item', 'child_shapes', 'is_alive', 'fading_time', 'end_time', 'collision_function',
-                 'qg_line_item_velocity')
+                 'original_velocity_func', 'qg_line_item_velocity')
 
     transient_items = []
 
@@ -94,8 +98,10 @@ class Item(pymunk.Body):
         if SHOW_VELOCITY:
             self.qg_line_item_velocity = QGraphicsLineItem(0, 0, 0, 0)
             self.qg_line_item_velocity.setPen(Shaqe.VELOCITY_PEN)
+        #self.original_velocity_func = None
         if space.attractive_item is not None:
             self.velocity_func = Item._central_gravity_velocity_func
+        self.original_velocity_func = self.velocity_func
         self.is_alive = False
         self.fading_time = None
         self.end_time = None
@@ -107,6 +113,34 @@ class Item(pymunk.Body):
         if body_type == KINEMATIC:
             space.kinematic_items.append(self)
         self.collision_function = None
+        liquid_damping = self.shaqe.liquid_damping
+        if liquid_damping is not None:
+            def damping_velocity_func(body, gravity, damping, dt):
+                body.original_velocity_func(body, gravity, liquid_damping, dt)
+            def enter_liquid(arbiter, space, data):
+                (body_a, body_b) = arbiter.bodies
+                if isinstance(body_b, Item):
+                    body_b.velocity_func = damping_velocity_func
+                    if body_b is space.player_item:
+                        contact_point = arbiter.contact_point_set.points[0]
+                        relative_speed = (body_b.velocity_at_world_point(contact_point.point_b)
+                                          - body_a.velocity_at_world_point(contact_point.point_a)).length
+                        Sound.water1.play_once(volume=relative_speed ** 2 / 2e6)
+                return False
+            def exit_liquid(arbiter, space, data):
+                try:
+                    (body_a, body_b) = arbiter.bodies
+                except AssertionError:
+                    pass
+                else:
+                    if isinstance(body_b, Item):
+                        if body_b is space.player_item:
+                            Sound.water3.play_once(volume=0.05)
+                        #body_b.velocity_func = pymunk.Body.update_velocity
+                        body_b.velocity_func = body_b.original_velocity_func
+            for child_shape in self.child_shapes:
+                space.on_collision(child_shape.collision_type, None, begin=enter_liquid)
+                space.on_collision(child_shape.collision_type, None, separate=exit_liquid)
 
     def set_body(self, body):
         for child_shape in self.child_shapes:
@@ -190,7 +224,7 @@ class Shaqe:
         - the item's graphical representation, as a PyQt QGraphicsItem
     """
 
-    __slots__ = ("qg_item", "shapes")
+    __slots__ = ("qg_item", "shapes", "liquid_damping")
 
     NO_PEN = QPen(Qt.NoPen)
     NO_BRUSH = QBrush(Qt.NoBrush)
@@ -210,6 +244,7 @@ class Shaqe:
         elasticity = kwargs.pop("elasticity", None)
         friction = kwargs.pop("friction", None)
         collision_type = kwargs.pop("collision_type", None)
+        self.liquid_damping = kwargs.pop("liquid_damping", None)
         for shape in shapes:
             if density is not None:
                 shape.density = density
@@ -219,12 +254,15 @@ class Shaqe:
                 shape.friction = friction
             if collision_type is not None:
                 shape.collision_type = collision_type
+            if self.liquid_damping is not None:
+                shape.sensor = True
 
     def set_pen(self, pen):
-        if WIREFRAME_MODE:
-            pen = Shaqe.WIREFRAME_PEN
-        elif pen is None:
-            pen = Shaqe.NO_PEN
+        if pen is None:
+            if WIREFRAME_MODE and pen is None:
+                pen = Shaqe.WIREFRAME_PEN
+            elif pen is None:
+                pen = Shaqe.NO_PEN
         self.qg_item.setPen(pen)
 
     def set_brush(self, brush):
@@ -527,7 +565,7 @@ class CompoundShaqe(Shaqe):
             shapes = iter(())
         else:
             shapes = (shape for child_shaqe in child_shaqes
-                      for shape in child_shaqe.shapes)
+                            for shape in child_shaqe.shapes)
             # if not child_shaqe.is_airy
         """
         if "pen" in kwargs:
@@ -583,7 +621,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                  "central_item", "player_item", "items_to_remove", "items_to_set_kinematic",
                  "kinematic_items", "main_window", "main_view", "time", "tracing_item",
                  "trace_counter", "trace_prev_position", "actions_by_single_key",
-                 "actions_by_repeat_key", "dt_s", "timer_elapse")
+                 "actions_by_repeat_key", "dt_s", "timer_elapse", "mouse_hook_item")
 
     trace_pen = QPen(Qt.white)
     trace_pen.setWidth(0)
@@ -592,6 +630,8 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         global space
         space = self
         pymunk.Space.__init__(self)
+        if COLLISION_BIAS is not None:
+            self.collision_bias = COLLISION_BIAS
         QGraphicsScene.__init__(self)
         # TODO
         self.setSceneRect(-2e6, -2e6, 4e6, 4e6)
@@ -622,7 +662,17 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         self.trace_prev_position = None
         self.actions_by_single_key = {}
         self.actions_by_repeat_key = {}
+        self.is_mouse_hook_on = False
         self.do_initial_setup()
+        pen = QPen(Qt.white)
+        pen.setStyle(Qt.DashLine)
+        pen.setWidth(2)
+        self.mouse_hook_item = CircleItem((0, 0), 0, MOUSE_HOOK_RADIUS,
+                                          friction=2.0, elasticity=0.0,
+                                          #brush=QBrush(QColor(255, 20, 20)),
+                                          pen=pen,
+                                          body_type=KINEMATIC)
+        self.mouse_hook_item.qg_item.setZValue(1)
         Sound.init()
         # if Beep is not None:
         #     self.init_sound()
@@ -929,6 +979,17 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         for item in compound_item.child_items:
             compound_item.qg_item.removeFromGroup(item.qg_item)
 
+    def toggle_mouse_hook(self):
+        self.is_mouse_hook_on = not self.is_mouse_hook_on
+        if self.is_mouse_hook_on:
+            app.setOverrideCursor(Qt.BlankCursor)
+            self.add_item(self.mouse_hook_item)
+            # TODO improve this
+            self.views()[0].move_mouse_hook_item()
+        else:
+            app.setOverrideCursor(Qt.CrossCursor)
+            self.remove_item(self.mouse_hook_item)
+
     def load_level(self, svg_filename):
         from svgelements import SVG, SVGElement, Path, Rect, Text, Circle, Point
         s_pos = (0, 0)
@@ -955,14 +1016,14 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                                    size=(w, h),
                                    body_type=DYNAMIC if svg_element.id.startswith("m") else STATIC,
                                    density=0.25e11,
-                                   is_airy=(svg_element.fill.alpha<255),
+                                   liquid_damping=(0.95 if svg_element.fill.alpha < 255 else None),
                                    #brush=QBrush(QColor(svg_element.fill.rgb)))
                                    brush=QBrush(QColor(svg_element.fill.red, svg_element.fill.green, svg_element.fill.blue,
                                                        svg_element.fill.alpha)))
-                if svg_element.fill.alpha<255:
+                if svg_element.fill.alpha < 255:
                     r.qg_item.setZValue(1)
             elif isinstance(svg_element, Circle):
-                assert svg_element.rx==svg_element.ry
+                assert svg_element.rx == svg_element.ry
                 self.add_circle_item((svg_element.cx, svg_element.cy), 0,
                                    svg_element.rx,
                                    body_type=DYNAMIC if svg_element.id.startswith("m") else STATIC,
@@ -977,7 +1038,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                                                     body_type=STATIC)
                 elif svg_element.fill.rgb > 0:
                     vertices = tuple(tuple(point) for point in tuple(svg_element.as_points())[::2])
-                    self.add_polygon_item((0, 0), 0., vertices=vertices[::-1], friction=0.8,
+                    x = self.add_polygon_item((0, 0), 0., vertices=vertices[::-1], friction=0.5,
                                            body_type=DYNAMIC if svg_element.id.startswith("m") else STATIC,
                                            density=0.3e11,
                                            #color=svg_element.fill.rgb)
@@ -1062,14 +1123,21 @@ class View(QGraphicsView):
     def mouseMoveEvent(self, mouse_event):
         QGraphicsView.mouseMoveEvent(self, mouse_event)
         if self.hideCursorTimer is None:
-            app.setOverrideCursor(Qt.CrossCursor)
-            self.hideCursorTimer = QTimer()
-            self.hideCursorTimer.setSingleShot(True)
-            self.hideCursorTimer.timeout.connect(self.hide_cursor)
-            self.hideCursorTimer.start(1000 * HIDE_CURSOR_DELAY)
+            if not self.scene().is_mouse_hook_on:
+                app.setOverrideCursor(Qt.CrossCursor)
+                self.hideCursorTimer = QTimer()
+                self.hideCursorTimer.setSingleShot(True)
+                self.hideCursorTimer.timeout.connect(self.hide_cursor)
+                self.hideCursorTimer.start(1000 * HIDE_CURSOR_DELAY)
         else:
             self.hideCursorTimer.stop()
             self.hideCursorTimer.start(1000 * HIDE_CURSOR_DELAY)
+        if self.scene().is_mouse_hook_on:
+            self.move_mouse_hook_item()
+
+    def move_mouse_hook_item(self):
+        pos_scene = self.mapToScene(self.mapFromGlobal(QCursor.pos()))
+        self.scene().mouse_hook_item.position = (pos_scene.x(), pos_scene.y())
 
     def _translate(self, dx, dy):
         # self.setTransformationAnchor(QGraphicsView. NoAnchor)
