@@ -116,9 +116,22 @@ class Item(pymunk.Body):
         liquid_damping = self.shaqe.liquid_damping
         if liquid_damping is not None:
             def damping_velocity_func(body, gravity, damping, dt):
-                body.original_velocity_func(body, gravity, liquid_damping, dt)
+                # TODO: to improve, how can we know the actual contact point?
+                contact_point = body.position
+                relative_velocity = body.velocity_at_world_point(contact_point) \
+                                  - self.velocity_at_world_point(contact_point)
+                #print (self.mass)
+                print(relative_velocity.length)
+                # TODO how to calculate the right factor, based on mass, liquid_damping and time delta?
+                #      note: mass is about 4e18
+                # force = mass * dv/dt = v * d
+                # force/dt = v * d / dt
+                #force = gravity - relative_velocity * 10
+                force = gravity - relative_velocity * (1.0 - liquid_damping) / SIMULATION_TIME_STEP
+                body.original_velocity_func(body, force, liquid_damping, dt)
             def enter_liquid(arbiter, space, data):
                 (body_a, body_b) = arbiter.bodies
+                assert body_a is self
                 if isinstance(body_b, Item):
                     body_b.velocity_func = damping_velocity_func
                     if body_b is space.player_item:
@@ -136,7 +149,6 @@ class Item(pymunk.Body):
                     if isinstance(body_b, Item):
                         if body_b is space.player_item:
                             Sound.water3.play_once(volume=0.05)
-                        #body_b.velocity_func = pymunk.Body.update_velocity
                         body_b.velocity_func = body_b.original_velocity_func
             for child_shape in self.child_shapes:
                 space.on_collision(child_shape.collision_type, None, begin=enter_liquid)
@@ -171,7 +183,8 @@ class Item(pymunk.Body):
             c = d3 / space.attractive_item_radius ** 3
             if c < 1:
                 f *= c
-            pymunk.Body.update_velocity(self, (f * dx, f * dy), damping, dt)
+            #pymunk.Body.update_velocity(self, (f * dx, f * dy), damping, dt)
+            pymunk.Body.update_velocity(self, (gravity.x + f * dx, gravity.y + f * dy), damping, dt)
 
     @staticmethod
     def remove_transient_items():

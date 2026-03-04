@@ -147,8 +147,8 @@ class USpace(munqy.MQSpace):
                     circle_shaqe2 = munqy.CircleShaqe(10, offset=(WORLD_RADIUS - 20, 0), density=1e13, brush=brush1,
                                                       is_airy=True)
                     attractive_item = self.add_compound_item((0., 0.), 0., circle_shaqe1, circle_shaqe2,
-                                                             angular_velocity=4*ANGULAR_VELOCITY,
-                                                             liquid_damping=0.99 if world_arg[-1] == "9" else None)
+                                                             angular_velocity=4/4*ANGULAR_VELOCITY,
+                                                             liquid_damping=0.90 if world_arg[-1] == "9" else None)
                     if world_arg[-1] == "9":
                         attractive_item.qg_item.setZValue(1)
                 else:
