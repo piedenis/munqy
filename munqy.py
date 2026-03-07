@@ -115,24 +115,22 @@ class Item(pymunk.Body):
         self.collision_function = None
         liquid_damping = self.shaqe.liquid_damping
         if liquid_damping is not None:
+            rotational_liquid_damping = 1.0 - (1.0-liquid_damping) / 2.0
             def damping_velocity_func(body, gravity, damping, dt):
                 # TODO: to improve, how can we know the actual contact point?
                 contact_point = body.position
-                relative_velocity = body.velocity_at_world_point(contact_point) \
-                                  - self.velocity_at_world_point(contact_point)
-                #print (self.mass)
-                print(relative_velocity.length)
-                # TODO how to calculate the right factor, based on mass, liquid_damping and time delta?
-                #      note: mass is about 4e18
-                # force = mass * dv/dt = v * d
-                # force/dt = v * d / dt
-                #force = gravity - relative_velocity * 10
-                force = gravity - relative_velocity * (1.0 - liquid_damping) / SIMULATION_TIME_STEP
-                body.original_velocity_func(body, force, liquid_damping, dt)
+                # relative_velocity = body.velocity_at_world_point(contact_point) \
+                #                   - self.velocity_at_world_point(contact_point)
+                relative_velocity = body.velocity - self.velocity_at_world_point(contact_point)
+                body.angular_velocity *= rotational_liquid_damping
+                force = gravity - relative_velocity * (1.0 - liquid_damping) / dt
+                body.original_velocity_func(body, force, 1.0, dt)
             def enter_liquid(arbiter, space, data):
                 (body_a, body_b) = arbiter.bodies
                 assert body_a is self
-                if isinstance(body_b, Item):
+                #if body_a is self and isinstance(body_b, Item): # and body_b.body_type == DYNAMIC:
+                if isinstance(body_b, Item) and body_b.body_type == DYNAMIC:
+                    #print("enter_liquid", body_a is self, type(body_a), body_a, type(body_b), body_b)
                     body_b.velocity_func = damping_velocity_func
                     if body_b is space.player_item:
                         contact_point = arbiter.contact_point_set.points[0]
@@ -146,18 +144,22 @@ class Item(pymunk.Body):
                 except AssertionError:
                     pass
                 else:
-                    if isinstance(body_b, Item):
+                    if isinstance(body_b, Item) and body_b.body_type == DYNAMIC:
+                        #print("exit_liquid", body_a is self, type(body_a), body_a, type(body_b), body_b)
                         if body_b is space.player_item:
                             Sound.water3.play_once(volume=0.05)
                         body_b.velocity_func = body_b.original_velocity_func
+            #print(self)
             for child_shape in self.child_shapes:
-                space.on_collision(child_shape.collision_type, None, begin=enter_liquid)
-                space.on_collision(child_shape.collision_type, None, separate=exit_liquid)
+                print(child_shape.collision_type)
+                space.on_collision(child_shape.collision_type, None, begin=enter_liquid,
+                                                                     separate=exit_liquid)
 
     def set_body(self, body):
         for child_shape in self.child_shapes:
             child_shape.body = body
             child_shape.collision_type = id(body.__class__)
+            #child_shape.collision_type = id(body)
 
     def _position_func(self, dt):
         Item.update_position(self, dt)
@@ -269,6 +271,7 @@ class Shaqe:
                 shape.collision_type = collision_type
             if self.liquid_damping is not None:
                 shape.sensor = True
+                #shape.collision_type = 0
 
     def set_pen(self, pen):
         if pen is None:
@@ -1027,7 +1030,9 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                 h = svg_element.height
                 r = self.add_rect_item((svg_element.x+w/2, svg_element.y+h/2), 1*svg_element.rotation,
                                    size=(w, h),
-                                   body_type=DYNAMIC if svg_element.id.startswith("m") else STATIC,
+                                   #body_type=DYNAMIC if svg_element.id.startswith("m") else STATIC,
+                                       body_type=DYNAMIC if svg_element.id.startswith("m")
+                                                        else (KINEMATIC if svg_element.fill.alpha < 255 else STATIC),
                                    density=0.25e11,
                                    liquid_damping=(0.95 if svg_element.fill.alpha < 255 else None),
                                    #brush=QBrush(QColor(svg_element.fill.rgb)))

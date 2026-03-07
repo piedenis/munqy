@@ -224,7 +224,7 @@ class USpace(munqy.MQSpace):
                 self.set_central_item(ring_item)
             elif world_arg == "8":
                 self.gravity = (0, GRAVITY)
-                self.add_clock_item((5250, 7800), 450)
+                #self.add_clock_item((5250, 7800), 450)
                 spacecraft_position = self.load_level("resources/level.svg")
                 self.add_item(MovingPlatform((5100, 6050), 0, (800, 200), ay=400.0))
                 self.add_item(MovingPlatform((6000, 6020), 0, (500, 200), ax=200.0))
