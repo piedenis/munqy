@@ -24,9 +24,9 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="px"
      showgrid="true"
-     inkscape:zoom="1.8101934"
-     inkscape:cx="6521.1266"
-     inkscape:cy="8326.1824"
+     inkscape:zoom="1.28"
+     inkscape:cx="6445.3125"
+     inkscape:cy="7932.0313"
      inkscape:window-width="1920"
      inkscape:window-height="1058"
      inkscape:window-x="196"
@@ -364,13 +364,28 @@
        id="path1"
        sodipodi:nodetypes="cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" />
     <path
+       style="fill:#ff6600;fill-opacity:1;stroke-width:0.673527"
+       d="m 7150,7430.3581 37.0482,-63.228 L 7345,7345 l 55,155 -110,50 -140,-115 70,-5 v 50 h 125 v -75 h -125 v 20"
+       id="m1-1-8-1-2"
+       sodipodi:nodetypes="cccccccccccc" />
+    <path
+       style="fill:#ff6600;fill-opacity:1;stroke-width:0.673527"
+       d="m 6320,7905 v -80 h 255 v 30 l 15,45 v 45 l -15,45 v 30 h -255 v -80 h 75 v 60 h 135 v -155 h -135 v 60"
+       id="m1-1-8-1"
+       sodipodi:nodetypes="cccccccccccccccc" />
+    <path
+       style="fill:#ff6600;fill-opacity:1;stroke-width:0.673527"
+       d="m 7340,7315 v -30 h 60 l 80,295 v 240 h -210 v -240 h 200 l -80,-285 h -30 l -10,20"
+       id="m1-1-8-8"
+       sodipodi:nodetypes="ccccccccccc" />
+    <path
        style="fill:#ff6600;fill-opacity:1;stroke-width:0.847763"
        d="m 5926.6287,7537.2834 23.0586,-104.2851 106.9691,-14.5332 63.4639,167.9207 46.3111,336.8311 -183.2759,25.1987 -46.311,-336.8313 158.5088,-21.7933 -55.1051,-143.8348 -69.3476,9.5346 -14.5514,77.7062"
        id="m1-1"
        sodipodi:nodetypes="ccccccccccc" />
     <path
        style="fill:#ff6600;fill-opacity:1;stroke-width:0.673527"
-       d="m 6420,7518.0556 37.0482,-63.228 107.9518,0.1088 40,110.4585 V 7780 H 6420 V 7565.3949 L 6595,7565 6560,7465 h -100 l -30,55"
+       d="m 7612.5,7492.8581 37.0482,-63.228 107.9518,0.1088 40,110.4585 v 214.6051 h -185 v -214.605 l 175,-0.395 -35,-100 h -100 l -30,55"
        id="m1-1-8"
        sodipodi:nodetypes="ccccccccccc" />
     <text
@@ -379,7 +394,7 @@
        x="938.48828"
        y="2669.8418"
        id="text1"
-       transform="matrix(6.8820118,0,0,6.8820118,-265.38316,-10339.972)"><tspan
+       transform="matrix(6.8820118,0,0,6.8820118,-14.09088,-10382.751)"><tspan
          x="938.48828"
          y="2669.8418"
          id="tspan4"><tspan
@@ -403,7 +418,7 @@
        inkscape:transform-center-y="-7954.1574" />
     <path
        style="fill:#787878;fill-opacity:1;stroke-width:6.88202"
-       d="m 5765,8640 -5,1600 h 325 v -240 h 1835 v 240 h 720 V 7760 h -240 l -340,320 -815,80 -5,240 H 6365.0698 L 6365,8100 6085,8000"
+       d="m 5765,8640 -5,1600 h 325 v -240 h 1835 v 240 h 720 V 7760 h -240 l -340,320 -820,80 v 240 H 6365.0698 L 6365,8100 6085,8000"
        id="path2"
        sodipodi:nodetypes="ccccccccccccccc" />
     <path

@@ -143,14 +143,13 @@ class USpace(munqy.MQSpace):
                                                         elasticity=1, friction=1.6)
                                                         #body_type=munqy.STATIC)
                 if world_arg[-1] == "3" or world_arg[-1] == "9":
+                    is_liquid = world_arg[-1] == "9"
                     brush1 = QBrush(QColor(150, 150, 250))
                     circle_shaqe2 = munqy.CircleShaqe(10, offset=(WORLD_RADIUS - 20, 0), density=1e13, brush=brush1,
                                                       is_airy=True)
                     attractive_item = self.add_compound_item((0., 0.), 0., circle_shaqe1, circle_shaqe2,
                                                              angular_velocity=4/4*ANGULAR_VELOCITY,
-                                                             liquid_damping=0.90 if world_arg[-1] == "9" else None)
-                    if world_arg[-1] == "9":
-                        attractive_item.qg_item.setZValue(1)
+                                                             liquid_damping=0.90 if is_liquid else None)
                 else:
                     attractive_item = self.add_compound_item((0., 0.), 0., circle_shaqe1,
                                                              is_airy=True,
@@ -567,6 +566,7 @@ class SpacecraftItem(AbstractSpacecraftItem):
                                             brush=QBrush(Qt.gray), pen=SpacecraftItem.shape_pen,
                                             density=1e12, elasticity=0.45, friction=0.2, **kwargs)
         reactor_u_shaqe = munqy.RectShaqe(size=(4, 3), offset=(0, -7.5),
+        # reactor_u_shaqe = munqy.RectShaqe(size=(4, 3), offset=(0, -6.0),
                                           brush=QBrush(Qt.gray), pen=SpacecraftItem.shape_pen,
                                           density=1e12,elasticity=0.45, friction=2.9, **kwargs)
         reactor_l_shaqe = munqy.RectShaqe(size=(3, 4), offset=(-16, 0),
@@ -575,11 +575,11 @@ class SpacecraftItem(AbstractSpacecraftItem):
         reactor_r_shaqe = munqy.RectShaqe(size=(3,4), offset=(+16, 0),
                                           brush=QBrush(Qt.gray), pen=SpacecraftItem.shape_pen,
                                           density=1e12, elasticity=0.45, friction=0.3, **kwargs)
-        # cockpit_shaqe = munqy.CircleShaqe(4.0, (9.0,-3.0), brush=QBrush(QColor(250,250,255)),
-        #                                  is_airy=True)
-        cockpit_shaqe = munqy.CircleShaqe(5.0, (9.0, -4.0), brush=QBrush(QColor("powderblue")),
-                                          pen=QPen(Qt.darkGray, 1),
-                                          density=1e12, elasticity=0.45, friction=0.3, **kwargs)
+        cockpit_shaqe = munqy.CircleShaqe(4.0, (9.0,-3.0), brush=QBrush(QColor(250,250,255)),
+                                         is_airy=True)
+        #cockpit_shaqe = munqy.CircleShaqe(5.0, (9.0, -4.0), brush=QBrush(QColor("powderblue")),
+        #                                  pen=QPen(Qt.darkGray, 1),
+        #                                  density=1e12, elasticity=0.45, friction=0.3, **kwargs)
         # text_shaqe = munqy.TextShaqe("munqy",font_size=4, font_family="Bauhaus 93", offset=(0,2),
         text_shaqe = munqy.TextShaqe("Ω", font_size=5, offset=(-4, -2.5),
                                      brush=QBrush(Qt.white),

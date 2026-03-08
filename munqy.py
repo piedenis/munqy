@@ -70,6 +70,7 @@ class Item(pymunk.Body):
         body_type = kwargs.pop("body_type", DYNAMIC)
         velocity = kwargs.pop("velocity", None)
         angular_velocity = kwargs.pop("angular_velocity", None)
+        z_value = kwargs.pop("z_value", None)
         if body_type is STATIC:
             assert velocity is None and angular_velocity is None
         pymunk.Body.__init__(self, mass, moment, body_type)
@@ -115,7 +116,12 @@ class Item(pymunk.Body):
         self.collision_function = None
         liquid_damping = self.shaqe.liquid_damping
         if liquid_damping is not None:
-            rotational_liquid_damping = 1.0 - (1.0-liquid_damping) / 2.0
+            if z_value is None:
+                if WIREFRAME_MODE and WIREFRAME_OPAQUE:
+                    z_value = -1
+                else:
+                    z_value = 1
+            rotational_liquid_damping = 1.0 - (1.0-liquid_damping) / 4.0
             def damping_velocity_func(body, gravity, damping, dt):
                 # TODO: to improve, how can we know the actual contact point?
                 contact_point = body.position
@@ -151,9 +157,10 @@ class Item(pymunk.Body):
                         body_b.velocity_func = body_b.original_velocity_func
             #print(self)
             for child_shape in self.child_shapes:
-                print(child_shape.collision_type)
                 space.on_collision(child_shape.collision_type, None, begin=enter_liquid,
                                                                      separate=exit_liquid)
+        if z_value is not None:
+            self.qg_item.setZValue(z_value)
 
     def set_body(self, body):
         for child_shape in self.child_shapes:
@@ -245,6 +252,9 @@ class Shaqe:
     NO_BRUSH = QBrush(Qt.NoBrush)
     WIREFRAME_PEN = QPen(Qt.white)
     WIREFRAME_PEN.setWidth(0)
+    WIREFRAME_OPAQUE_BRUSH = QBrush(Qt.black)
+    #WIREFRAME_LIQUID_BRUSH = QBrush(Qt.darkGray, Qt.Dense8Pattern)
+    WIREFRAME_LIQUID_BRUSH = None
     VELOCITY_PEN = QPen(QColor(180,180,255))
     VELOCITY_PEN.setWidth(0)
 
@@ -274,16 +284,32 @@ class Shaqe:
                 #shape.collision_type = 0
 
     def set_pen(self, pen):
-        if pen is None:
-            if WIREFRAME_MODE and pen is None:
+        if WIREFRAME_MODE:
+            if pen is not None:
+                pen_style = pen.style()
+                pen_width = pen.width()
+                pen = QPen(Shaqe.WIREFRAME_PEN)
+                pen.setStyle(pen_style)
+                pen.setWidth(pen_width)
+            else:
                 pen = Shaqe.WIREFRAME_PEN
-            elif pen is None:
-                pen = Shaqe.NO_PEN
+        elif pen is None:
+            pen = Shaqe.NO_PEN
         self.qg_item.setPen(pen)
 
     def set_brush(self, brush):
         if WIREFRAME_MODE:
-            brush = Qt.black if WIREFRAME_OPAQUE else Shaqe.NO_BRUSH
+            if brush is not None and (brush.color().alpha() < 255 or brush.style() != Qt.SolidPattern):
+                if Shaqe.WIREFRAME_LIQUID_BRUSH is None:
+                    #data = b"\x80" + 16 * b"\x00" + b"\x80" + 14 * b"\x00"
+                    data = b"\xf0" + 16 * b"\x00" + b"\xf0" + 14 * b"\x00"
+                    bitmap = QBitmap.fromData(QSize(16, 16), data, QImage.Format_Mono)
+                    Shaqe.WIREFRAME_LIQUID_BRUSH = QBrush(Qt.darkGray, bitmap)  # Qt.Dense8Pattern)
+                brush = Shaqe.WIREFRAME_LIQUID_BRUSH
+            elif WIREFRAME_OPAQUE:
+                brush = Shaqe.WIREFRAME_OPAQUE_BRUSH
+            else:
+                brush = Shaqe.NO_BRUSH
         elif brush is None:
             brush = Shaqe.NO_BRUSH
         self.qg_item.setBrush(brush)
@@ -1028,18 +1054,16 @@ class MQSpace(pymunk.Space, QGraphicsScene):
             elif isinstance(svg_element, Rect):
                 w = svg_element.width
                 h = svg_element.height
-                r = self.add_rect_item((svg_element.x+w/2, svg_element.y+h/2), 1*svg_element.rotation,
+                is_liquid = svg_element.fill.alpha < 255
+                self.add_rect_item((svg_element.x+w/2, svg_element.y+h/2), 1*svg_element.rotation,
                                    size=(w, h),
                                    #body_type=DYNAMIC if svg_element.id.startswith("m") else STATIC,
                                        body_type=DYNAMIC if svg_element.id.startswith("m")
-                                                        else (KINEMATIC if svg_element.fill.alpha < 255 else STATIC),
+                                                        else (KINEMATIC if is_liquid else STATIC),
                                    density=0.25e11,
-                                   liquid_damping=(0.95 if svg_element.fill.alpha < 255 else None),
-                                   #brush=QBrush(QColor(svg_element.fill.rgb)))
+                                   liquid_damping=(0.95 if is_liquid else None),
                                    brush=QBrush(QColor(svg_element.fill.red, svg_element.fill.green, svg_element.fill.blue,
                                                        svg_element.fill.alpha)))
-                if svg_element.fill.alpha < 255:
-                    r.qg_item.setZValue(1)
             elif isinstance(svg_element, Circle):
                 assert svg_element.rx == svg_element.ry
                 self.add_circle_item((svg_element.cx, svg_element.cy), 0,
