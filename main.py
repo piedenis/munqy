@@ -229,6 +229,15 @@ class USpace(munqy.MQSpace):
                 self.add_item(MovingPlatform((6000, 6020), 0, (500, 200), ax=200.0))
                 self.add_item(MovingPlatform((6500, 7020), 0, (800, 200), ax=150.0))
 
+            for x in range(3800, 8000, 100):
+                self.add_rect_item((x, 10700), 0., size=(45,250),
+                                    velocity=(0, 0),
+                                    angular_velocity=0,
+                                    density=1.0e9,
+                                    brush=self.brush3)
+
+
+
         if world_arg == "P3":
             munqy.SIMULATION_TIME_STEP = 2e-3  # in sec
             munqy.HIDE_CURSOR = True

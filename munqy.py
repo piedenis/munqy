@@ -133,7 +133,7 @@ class Item(pymunk.Body):
                 body.original_velocity_func(body, force, 1.0, dt)
             def enter_liquid(arbiter, space, data):
                 (body_a, body_b) = arbiter.bodies
-                assert body_a is self
+                # assert body_a is self
                 #if body_a is self and isinstance(body_b, Item): # and body_b.body_type == DYNAMIC:
                 if isinstance(body_b, Item) and body_b.body_type == DYNAMIC:
                     #print("enter_liquid", body_a is self, type(body_a), body_a, type(body_b), body_b)
@@ -1080,7 +1080,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                                                     body_type=STATIC)
                 elif svg_element.fill.rgb > 0:
                     vertices = tuple(tuple(point) for point in tuple(svg_element.as_points())[::2])
-                    x = self.add_polygon_item((0, 0), 0., vertices=vertices[::-1], friction=0.5,
+                    self.add_polygon_item((0, 0), 0., vertices=vertices[::-1], friction=0.5,
                                            body_type=DYNAMIC if svg_element.id.startswith("m") else STATIC,
                                            density=0.3e11,
                                            #color=svg_element.fill.rgb)
@@ -1095,7 +1095,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                                 (x     - BORDER_WIDTH , y + h + BORDER_WIDTH),
                                 (x     - BORDER_WIDTH+1e-6, y   - BORDER_WIDTH)) \
                                + inner_vertices + (inner_vertices[0],)
-                    self.add_polygon_item((x, y), 0., vertices=vertices, friction=0.5,
+                    self.add_polygon_item((x, y), 0., vertices=vertices, friction=5.5,
                                           body_type=STATIC,
                                           brush=wall_color_brush)
         return s_pos
