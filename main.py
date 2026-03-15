@@ -222,12 +222,42 @@ class USpace(munqy.MQSpace):
                 self.add_item(ring_item)
                 self.set_central_item(ring_item)
             elif world_arg == "8":
-                self.gravity = (0, GRAVITY)
+                self.gravity = (0, 4*GRAVITY)
                 #self.add_clock_item((5250, 7800), 450)
                 spacecraft_position = self.load_level("resources/level.svg")
                 self.add_item(MovingPlatform((5100, 6050), 0, (800, 200), ay=400.0))
                 self.add_item(MovingPlatform((6000, 6020), 0, (500, 200), ax=200.0))
                 self.add_item(MovingPlatform((6500, 7020), 0, (800, 200), ax=150.0))
+
+                print(self.static_body.position)
+                self.static_body.position = (0, 0)
+
+                a = self.add_segment_item((2800, 10500), 0, size=(300, 20), is_center_at_start=True,
+                                           density=1e4,
+                                           color=Qt.green)
+                                           #elasticity=1, friction=0.6)
+                b = self.add_segment_item((2800+20/10+300, 10500), 0, size=(200, 20), is_center_at_start=True,
+                                           density=1e4,
+                                           color=Qt.green)
+                                           #elasticity=1, friction=0.6)
+                import pymunk
+
+                # a = self.add_circle_item((2500, 10500), 0, radius=50,
+                #                            density=1e12,
+                #                            brush=self.brush2,
+                #                            elasticity=1, friction=0.6)
+                #joint1 = pymunk.constraints.PinJoint(self.static_body, a, (0, 0), (0, 0))
+
+                #joint1 = pymunk.constraints.PinJoint(self.static_body, a, (3000, 10500), (0, 0))
+                #joint1 = pymunk.constraints.PinJoint(self.static_body, a, (2800+20/2, 10500), (0+20/2, 0))
+                #joint2 = pymunk.constraints.PinJoint(a, b, (200/2, 0), (0, 0))
+                joint1 = pymunk.constraints.PivotJoint(self.static_body, a, (2800+20/2, 10200), (0+20/2, 0))
+                joint2 = pymunk.constraints.PivotJoint(a, b, (300, 0), (0, 0))
+                joint1.collide_bodies = False
+                joint2.collide_bodies = False
+                self.add(joint1)
+                self.add(joint2)
+
 
             for x in range(3800, 8000, 100):
                 self.add_rect_item((x, 10700), 0., size=(45,250),
@@ -363,7 +393,7 @@ class USpace(munqy.MQSpace):
     """
     
     def drop_item1(self):
-        self.add_circle_item(self.get_cursor_position(),0.,radius=1,
+        self.add_circle_item(self.get_cursor_position(), 0., radius=1,
                              velocity=(uniform(-200,200), uniform(-200,200)), elasticity=0.1,
                              density=0.25e10, brush=self.brush2)
 
