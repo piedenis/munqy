@@ -250,7 +250,9 @@ class Shaqe:
 
     NO_PEN = QPen(Qt.NoPen)
     NO_BRUSH = QBrush(Qt.NoBrush)
-    WIREFRAME_PEN = QPen(Qt.white)
+    #WIREFRAME_PEN = QPen(Qt.white)
+    #WIREFRAME_PEN = QPen(Qt.green)
+    WIREFRAME_PEN = QPen(QColor(200, 255, 200))
     WIREFRAME_PEN.setWidth(0)
     WIREFRAME_OPAQUE_BRUSH = QBrush(Qt.black)
     #WIREFRAME_LIQUID_BRUSH = QBrush(Qt.darkGray, Qt.Dense8Pattern)
@@ -1095,7 +1097,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                                 (x     - BORDER_WIDTH , y + h + BORDER_WIDTH),
                                 (x     - BORDER_WIDTH+1e-6, y   - BORDER_WIDTH)) \
                                + inner_vertices + (inner_vertices[0],)
-                    self.add_polygon_item((x, y), 0., vertices=vertices, friction=5.5,
+                    self.add_polygon_item((0, 0), 0., vertices=vertices, friction=5.5,
                                           body_type=STATIC,
                                           brush=wall_color_brush)
         return s_pos
