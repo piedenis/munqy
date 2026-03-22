@@ -223,7 +223,7 @@ class USpace(munqy.MQSpace):
                 self.add_item(ring_item)
                 self.set_central_item(ring_item)
             elif world_arg == "8":
-                self.gravity = (0, 4*GRAVITY)
+                self.gravity = (0, 4/4*GRAVITY)
                 print(self.static_body.position)
                 #self.add_clock_item((5250, 7800), 450)
                 spacecraft_position = self.load_level("resources/level.svg")
@@ -443,6 +443,7 @@ class USpace(munqy.MQSpace):
                                        Qt.AltModifier     : 'Alt' }
 
     def do_timer_event(self):
+        munqy.MQSpace.do_timer_event(self)
         if self.display_help and self.just_pressed_key is not None and self.info is not None:
             s = []
             if self.keyboard_modifiers != 0:
@@ -472,37 +473,6 @@ class USpace(munqy.MQSpace):
             if self.spacecraft_item_osc is not None:
                 self.spacecraft_item_osc.stabilize()
 
-    """
-    def do_timer_event(self):
-        if self.counter == 0:
-            if self.display_help and self.info is not None:
-                s = []
-                if self.keyboard_modifiers != 0:
-                    m = USpace.key_character_by_key_modifier.get(self.keyboard_modifiers, "?")
-                    s.append(m)
-                if self.just_pressed_key is not None:
-                    try:
-                        c = chr(self.just_pressed_key)
-                    except:
-                        c = USpace.key_character_by_key_code.get(self.just_pressed_key, str(self.just_pressed_key))
-                    s.append(c)
-                self.label.setText("+".join(s)+": "+self.info)
-                self.label.adjustSize()
-                self.label.show()
-                self.counter = 1
-        elif self.counter == 500:
-            self.label.hide()
-            self.counter = 0
-        else:
-            self.counter += 1
-        self.just_pressed_key = None
-        self.keyboard_modifiers = 0
-        if self.spacecraft_item is not None:
-            self.spacecraft_item.stabilize()
-        if self.spacecraft_item_osc is not None:
-            self.spacecraft_item_osc.stabilize()
-    """
-
     def add_clock_item(self, position, radius):
         t = datetime.now()
         for item in (munqy.CircleItem(position, 0, radius, brush=QBrush(QColor(10, 10, 10)), is_airy=True, body_type=munqy.STATIC),
@@ -514,9 +484,11 @@ class USpace(munqy.MQSpace):
 class AbstractSpacecraftItem(munqy.CompoundItem):
 
     wind_brush = QBrush(QColor(255, 255, 200))
+    bubble_brush = QBrush(QColor(255, 255, 255))
 
     def __init__(self, *args, **kwargs):
         munqy.CompoundItem.__init__(self, *args, **kwargs)
+        self.is_in_liquid = False
 
     def activate_thruster(self, local_force, local_position):
         (fx, fy) = local_force
@@ -579,6 +551,26 @@ class AbstractSpacecraftItem(munqy.CompoundItem):
     def drop_bomb(self):
         pass
 
+    def do_timer_event(self):
+        if self.is_in_liquid:
+            if uniform(0, 100) < 10:
+                # place the bubble in the anti-G direction
+                if uspace.central_item is None:
+                    d = (-uspace.gravity).normalized()
+                else:
+                    d = (self.position - uspace.central_item.position).normalized()
+                dp = uniform(-16, +16) * d.perpendicular() + 4 * d
+                uspace.add_circle_item(self.position+dp, 0.0, velocity=self.velocity,
+                                       radius=0.5, density=1e12,
+                                       brush=SpacecraftItem.bubble_brush,
+                                       is_bubble=True,
+                                       duration_s=2, with_fading=True)
+
+    def do_enter_liquid(self, liquid_body):
+        self.is_in_liquid = True
+
+    def do_exit_liquid(self, liquid_body):
+        self.is_in_liquid = False
 
 class SpacecraftItem(AbstractSpacecraftItem):
     shape_pen = QPen(QColor(100, 100, 100))
@@ -842,14 +834,14 @@ class Bomb(munqy.SegmentItem):
         Sound.explosion2.play_once(volume=400000/uspace.distance_player_item(self)**2)
         #winsound.Beep(440,250)
         #winsound.PlaySound("explosion1.wav",winsound.SND_ASYNC)
-        (x,y) = self.position
-        (vx,vy) = self.velocity
+        (x, y) = self.position
+        (vx, vy) = self.velocity
         # TODO
         #space = self.qg_item.scene()
-        uspace.add_circle_item(self.position,0.0,#velocity=self.velocity,
-                       radius=30,brush=Bomb.brush,
-                       body_type=munqy.KINEMATIC,is_airy=True,
-                       duration_s=0.5,with_fading=True)
+        uspace.add_circle_item(self.position, 0.0, #velocity=self.velocity,
+                       radius=30, brush=Bomb.brush,
+                       body_type=munqy.KINEMATIC, is_airy=True,
+                       duration_s=0.5, with_fading=True)
         for _ in range(50):
             a = uniform(0, 2*pi)
             (dx,dy) = (cos(a), sin(a))
