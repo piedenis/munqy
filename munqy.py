@@ -50,9 +50,10 @@ class Item(pymunk.Body):
     """
 
     __slots__ = ('shaqe', 'qg_item', 'child_shapes', 'is_alive', 'fading_time', 'end_time', 'collision_function',
-                 'original_velocity_func', 'qg_line_item_velocity')
+                 'is_bubble', 'original_velocity_func', 'qg_line_item_velocity')
 
     transient_items = []
+    do_timer_event = None
 
     def do_initialize(self):
         pass
@@ -110,11 +111,11 @@ class Item(pymunk.Body):
         if duration_s is not None:
             with_fading = kwargs.get("with_fading", False)
             self.set_transient(duration_s, with_fading)
-        self.do_initialize()
         if body_type == KINEMATIC:
             space.kinematic_items.append(self)
         self.collision_function = None
         liquid_damping = self.shaqe.liquid_damping
+        self.is_bubble = kwargs.pop("is_bubble", False)
         if liquid_damping is not None:
             if z_value is None:
                 if WIREFRAME_MODE and WIREFRAME_OPAQUE:
@@ -122,45 +123,64 @@ class Item(pymunk.Body):
                 else:
                     z_value = 1
             rotational_liquid_damping = 1.0 - (1.0-liquid_damping) / 4.0
-            def damping_velocity_func(body, gravity, damping, dt):
+            def damping_velocity_func(body, gravity_force, _damping, dt):
+                # damping argument is ignored because it is a global out-of-liquid value,
+                # to be replaced by the liquid damping's
                 # TODO: to improve, how can we know the actual contact point?
                 contact_point = body.position
                 # relative_velocity = body.velocity_at_world_point(contact_point) \
                 #                   - self.velocity_at_world_point(contact_point)
                 relative_velocity = body.velocity - self.velocity_at_world_point(contact_point)
                 body.angular_velocity *= rotational_liquid_damping
-                force = gravity - relative_velocity * (1.0 - liquid_damping) / dt
+                if body.is_bubble:
+                    # buoyancy force approximated as negated gravity force
+                    gravity_force = -gravity_force
+                force = gravity_force - relative_velocity * (1.0 - liquid_damping) / dt
+                # damping argument is 1.0 because the actual damping has already been included in force argument
                 body.original_velocity_func(body, force, 1.0, dt)
-            def enter_liquid(arbiter, space, data):
-                (body_a, body_b) = arbiter.bodies
-                # assert body_a is self
+            def enter_liquid(arbiter, space, _data):
+                (liquid_body, body_b) = arbiter.bodies
+                # assert liquid_body is self
                 #if body_a is self and isinstance(body_b, Item): # and body_b.body_type == DYNAMIC:
                 if isinstance(body_b, Item) and body_b.body_type == DYNAMIC:
-                    #print("enter_liquid", body_a is self, type(body_a), body_a, type(body_b), body_b)
+                    # TODO: understand why the assert may fail
+                    #assert liquid_body is self
+                    #print("enter_liquid", liquid_body is self, type(liquid_body), liquid_body, type(body_b), body_b)
                     body_b.velocity_func = damping_velocity_func
                     if body_b is space.player_item:
                         contact_point = arbiter.contact_point_set.points[0]
                         relative_speed = (body_b.velocity_at_world_point(contact_point.point_b)
-                                          - body_a.velocity_at_world_point(contact_point.point_a)).length
+                                          - liquid_body.velocity_at_world_point(contact_point.point_a)).length
                         Sound.water1.play_once(volume=relative_speed ** 2 / 2e6)
+                    body_b.do_enter_liquid(liquid_body)
                 return False
             def exit_liquid(arbiter, space, data):
                 try:
-                    (body_a, body_b) = arbiter.bodies
+                    (liquid_body, body_b) = arbiter.bodies
                 except AssertionError:
                     pass
                 else:
                     if isinstance(body_b, Item) and body_b.body_type == DYNAMIC:
-                        #print("exit_liquid", body_a is self, type(body_a), body_a, type(body_b), body_b)
+                        #print("exit_liquid", body_a is self, type(liquid_body), liquid_body, type(body_b), body_b)
                         if body_b is space.player_item:
                             Sound.water3.play_once(volume=0.05)
                         body_b.velocity_func = body_b.original_velocity_func
+                        body_b.do_exit_liquid(liquid_body)
             #print(self)
             for child_shape in self.child_shapes:
+                # TODO remove when ...
                 space.on_collision(child_shape.collision_type, None, begin=enter_liquid,
                                                                      separate=exit_liquid)
         if z_value is not None:
             self.qg_item.setZValue(z_value)
+        self.do_initialize()
+
+    def do_enter_liquid(self, liquid_body):
+        pass
+
+    def do_exit_liquid(self, liquid_body):
+        if self.is_bubble:
+            space.items_to_remove.add(self)
 
     def set_body(self, body):
         for child_shape in self.child_shapes:
@@ -179,7 +199,7 @@ class Item(pymunk.Body):
                 self.qg_line_item_velocity.setLine(self.position.x, self.position.y,
                                                    self.position.x + self.velocity.x/10, self.position.y + self.velocity.y/10)
 
-    def _central_gravity_velocity_func(self, gravity, damping, dt):
+    def _central_gravity_velocity_func(self, force, damping, dt):
         (x, y) = self.position
         (cx, cy) = space.attractive_item.position
         dx = cx - x
@@ -187,13 +207,15 @@ class Item(pymunk.Body):
         d3 = hypot(dx, dy) ** 3
         if d3 > 0.0:
             # Newton's law of gravitation
-            f = space.attractive_item_force / hypot(dx, dy) ** 3
+            gravity_force = space.attractive_item_force / hypot(dx, dy) ** 3
             # shell theorem: if the body is inside the sphere (c < 1), then only the inner sphere's mass shall be considered
             c = d3 / space.attractive_item_radius ** 3
             if c < 1:
-                f *= c
-            #pymunk.Body.update_velocity(self, (f * dx, f * dy), damping, dt)
-            pymunk.Body.update_velocity(self, (gravity.x + f * dx, gravity.y + f * dy), damping, dt)
+                gravity_force *= c
+            if self.is_bubble:
+                # buoyancy force approximated as negated gravity force
+                gravity_force = -gravity_force
+            pymunk.Body.update_velocity(self, (force.x + gravity_force*dx, force.y + gravity_force*dy), damping, dt)
 
     @staticmethod
     def remove_transient_items():
@@ -805,7 +827,10 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         pass
 
     def do_timer_event(self):
-        pass
+        # TODO: optimize self.bodies is dict_keys -
+        for item in tuple(self.bodies):
+            if item.do_timer_event is not None:
+                item.do_timer_event()
 
     def do_mouse_press_event(self, position, button):
         pass
