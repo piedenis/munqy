@@ -110,9 +110,6 @@ class USpace(munqy.MQSpace):
                 self.add_clock_item((250, -800), 450)
                 self.add_clock_item((-7000, -400), 5000)
                 self.add_clock_item((-400, 400), 50)
-
-                print(self.static_body.position)
-
             elif world_arg == "2":
                 brush1 = QBrush(QColor(30, 30, 55))
                 n = 120
@@ -224,10 +221,8 @@ class USpace(munqy.MQSpace):
                 self.set_central_item(ring_item)
             elif world_arg == "8":
                 self.gravity = (0, 4/4*GRAVITY)
-                print(self.static_body.position)
-                #self.add_clock_item((5250, 7800), 450)
+                self.add_clock_item((5600, 7800), 450)
                 spacecraft_position = self.load_level("resources/level.svg")
-                print(self.static_body.position)
                 self.add_item(MovingPlatform((5100, 6050), 0, (800, 200), ay=400.0))
                 self.add_item(MovingPlatform((6000, 6020), 0, (500, 200), ax=200.0))
                 self.add_item(MovingPlatform((6500, 7020), 0, (800, 200), ax=150.0))
@@ -553,7 +548,7 @@ class AbstractSpacecraftItem(munqy.CompoundItem):
 
     def do_timer_event(self):
         if self.is_in_liquid:
-            if uniform(0, 100) < 10:
+            if uniform(0, 800) < 10 + self.velocity.length:
                 # place the bubble in the anti-G direction
                 if uspace.central_item is None:
                     d = (-uspace.gravity).normalized()
@@ -605,11 +600,11 @@ class SpacecraftItem(AbstractSpacecraftItem):
         reactor_r_shaqe = munqy.RectShaqe(size=(3,4), offset=(+16, 0),
                                           brush=QBrush(Qt.gray), pen=SpacecraftItem.shape_pen,
                                           density=1e12, elasticity=0.45, friction=0.3, **kwargs)
-        cockpit_shaqe = munqy.CircleShaqe(4.0, (9.0,-3.0), brush=QBrush(QColor(250,250,255)),
-                                         is_airy=True)
-        #cockpit_shaqe = munqy.CircleShaqe(5.0, (9.0, -4.0), brush=QBrush(QColor("powderblue")),
-        #                                  pen=QPen(Qt.darkGray, 1),
-        #                                  density=1e12, elasticity=0.45, friction=0.3, **kwargs)
+        # cockpit_shaqe = munqy.CircleShaqe(4.0, (9.0,-3.0), brush=QBrush(QColor(250,250,255)),
+        #                                  is_airy=True)
+        cockpit_shaqe = munqy.CircleShaqe(5.0, (9.0, -4.0), brush=QBrush(QColor("powderblue")),
+                                         pen=QPen(Qt.darkGray, 1),
+                                         density=1e12, elasticity=0.45, friction=0.3, **kwargs)
         # text_shaqe = munqy.TextShaqe("munqy",font_size=4, font_family="Bauhaus 93", offset=(0,2),
         text_shaqe = munqy.TextShaqe("Ω", font_size=5, offset=(-4, -2.5),
                                      brush=QBrush(Qt.white),
