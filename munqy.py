@@ -188,6 +188,9 @@ class Item(pymunk.Body):
             child_shape.collision_type = id(body.__class__)
             #child_shape.collision_type = id(body)
 
+    def is_point_inside(self, point):
+        return any((shape.point_query(point).distance <= 0) for shape in self.shapes)
+
     def _position_func(self, dt):
         Item.update_position(self, dt)
         if UNIVERSE_SIZE is not None and (abs(self.position.x) > UNIVERSE_SIZE or abs(self.position.y) > UNIVERSE_SIZE):

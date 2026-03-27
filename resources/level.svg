@@ -24,9 +24,9 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="px"
      showgrid="true"
-     inkscape:zoom="0.45254834"
-     inkscape:cx="5699.9436"
-     inkscape:cy="7398.1047"
+     inkscape:zoom="0.11313709"
+     inkscape:cx="6333.0251"
+     inkscape:cy="10279.565"
      inkscape:window-width="1920"
      inkscape:window-height="1058"
      inkscape:window-x="196"
@@ -397,9 +397,9 @@
        transform="matrix(6.8820118,0,0,6.8820118,129.61684,-10392.751)"><tspan
          x="938.48828"
          y="2669.8418"
-         id="tspan4"><tspan
+         id="tspan3"><tspan
            style="font-family:sans-serif;-inkscape-font-specification:sans-serif"
-           id="tspan1">S</tspan></tspan></text>
+           id="tspan2">S</tspan></tspan></text>
     <rect
        style="fill:#63709b;fill-opacity:1;stroke-width:3.82908"
        id="rect1"
@@ -418,9 +418,9 @@
        inkscape:transform-center-y="-7954.1574" />
     <path
        style="fill:#787878;fill-opacity:1;stroke-width:6.88202"
-       d="m 5765,8640 -5,1600 h 325 v -240 h 1835 v 240 h 720 V 7760 h -240 l -340,320 -820,80 v 240 H 6365.0698 L 6365,8100 6085,8000"
+       d="m 5765,8640 -5,1600 h 325 v -240 h 1835 v 240 h 720 V 7760 h -240 l -340,320 -820,40 V 9500 H 6020 v -260 h 340 V 8100 l -275,-100"
        id="path2"
-       sodipodi:nodetypes="ccccccccccccccc" />
+       sodipodi:nodetypes="ccccccccccccccccc" />
     <path
        style="fill:#787878;fill-opacity:1;stroke-width:6.88202"
        d="m 16000,6560 -1440,1920 h 4000 l -960,-1920 v -480 h -280 v 400 l -1120,1120 h 1000 v -320 h 560 v 320 680 L 16204.95,8278.6262 16200,8040 h -280 v -440 l 1120,-1120 v -400 h -1040"
@@ -540,12 +540,13 @@
        cy="13440"
        r="80" />
     <rect
-       style="fill:#1f1dec;fill-opacity:0.533679;stroke-width:0.691805"
+       style="fill:#1f1dec;fill-opacity:0.533679;stroke-width:1.7245"
        id="rect2"
-       width="874.93018"
-       height="200"
-       x="6365.0698"
-       y="8200" />
+       width="880"
+       height="1040"
+       x="6360"
+       y="8200"
+       ry="1.4217308" />
     <circle
        style="fill:#fcff9f;fill-opacity:0.93782383"
        id="path10"

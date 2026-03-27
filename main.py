@@ -483,7 +483,7 @@ class AbstractSpacecraftItem(munqy.CompoundItem):
 
     def __init__(self, *args, **kwargs):
         munqy.CompoundItem.__init__(self, *args, **kwargs)
-        self.is_in_liquid = False
+        self.outer_liquid_body = None
 
     def activate_thruster(self, local_force, local_position):
         (fx, fy) = local_force
@@ -547,25 +547,26 @@ class AbstractSpacecraftItem(munqy.CompoundItem):
         pass
 
     def do_timer_event(self):
-        if self.is_in_liquid:
+        if self.outer_liquid_body is not None:
             if uniform(0, 800) < 10 + self.velocity.length:
                 # place the bubble in the anti-G direction
                 if uspace.central_item is None:
                     d = (-uspace.gravity).normalized()
                 else:
                     d = (self.position - uspace.central_item.position).normalized()
-                dp = uniform(-16, +16) * d.perpendicular() + 4 * d
-                uspace.add_circle_item(self.position+dp, 0.0, velocity=self.velocity,
-                                       radius=0.5, density=1e12,
-                                       brush=SpacecraftItem.bubble_brush,
-                                       is_bubble=True,
-                                       duration_s=2, with_fading=True)
+                bubble_pos = self.position + uniform(-16, +16) * d.perpendicular() + 4 * d
+                if self.outer_liquid_body.is_point_inside(bubble_pos):
+                    uspace.add_circle_item(bubble_pos, 0.0, velocity=self.velocity,
+                                           radius=0.5, density=1e12,
+                                           brush=SpacecraftItem.bubble_brush,
+                                           is_bubble=True,
+                                           duration_s=2, with_fading=True)
 
     def do_enter_liquid(self, liquid_body):
-        self.is_in_liquid = True
+        self.outer_liquid_body = liquid_body
 
     def do_exit_liquid(self, liquid_body):
-        self.is_in_liquid = False
+        self.outer_liquid_body = None
 
 class SpacecraftItem(AbstractSpacecraftItem):
     shape_pen = QPen(QColor(100, 100, 100))
