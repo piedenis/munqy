@@ -12,7 +12,12 @@
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <title
+     id="title1">Sandbox 1</title>
   <sodipodi:namedview
      id="namedview1"
      pagecolor="#787878"
@@ -25,8 +30,8 @@
      inkscape:document-units="px"
      showgrid="true"
      inkscape:zoom="0.11313709"
-     inkscape:cx="6333.0251"
-     inkscape:cy="10279.565"
+     inkscape:cx="6333.0248"
+     inkscape:cy="6036.9239"
      inkscape:window-width="1920"
      inkscape:window-height="1058"
      inkscape:window-x="196"
@@ -420,7 +425,16 @@
        style="fill:#787878;fill-opacity:1;stroke-width:6.88202"
        d="m 5765,8640 -5,1600 h 325 v -240 h 1835 v 240 h 720 V 7760 h -240 l -340,320 -820,40 V 9500 H 6020 v -260 h 340 V 8100 l -275,-100"
        id="path2"
-       sodipodi:nodetypes="ccccccccccccccccc" />
+       sodipodi:nodetypes="ccccccccccccccccc"
+       inkscape:label="label555551111sds  rter ert er">
+      <desc
+         id="desc2">zzzez r 1ere
+ert te'rt er
+t ert
+</desc>
+      <title
+         id="title2">title8888888 ssss efes dff :§***-12345</title>
+    </path>
     <path
        style="fill:#787878;fill-opacity:1;stroke-width:6.88202"
        d="m 16000,6560 -1440,1920 h 4000 l -960,-1920 v -480 h -280 v 400 l -1120,1120 h 1000 v -320 h 560 v 320 680 L 16204.95,8278.6262 16200,8040 h -280 v -440 l 1120,-1120 v -400 h -1040"
@@ -610,4 +624,20 @@
        x="1860"
        y="10640" />
   </g>
+  <metadata
+     id="metadata1">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Denis</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:description>ABC
+DEF</dc:description>
+        <dc:title>Sandbox 1</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
 </svg>

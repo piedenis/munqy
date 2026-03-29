@@ -1063,11 +1063,38 @@ class MQSpace(pymunk.Space, QGraphicsScene):
             self.remove_item(self.mouse_hook_item)
 
     def load_level(self, svg_filename):
-        from svgelements import SVG, SVGElement, Path, Rect, Text, Circle, Point
+
+        from xml.etree import ElementTree
+        root = ElementTree.parse(svg_filename).getroot()
+        ns = {'dc': "http://purl.org/dc/elements/1.1/"}
+        description = root.find(".//dc:description", ns).text
+        print(description)
+
+
+        from svgelements import SVG, SVGElement, Path, Rect, Text, Circle, Point, Desc
         s_pos = (0, 0)
         wall_color_code = None
         svg = SVG.parse(svg_filename)
         for svg_element in svg.elements():
+
+            #print(svg_element.id)
+            if hasattr(svg_element, "title"):
+                print(svg_element.title)
+            #print(svg_element.label)
+            #print(svg_element.description)
+            #print(tuple(svg_element.values.keys()))
+            #print(tuple(svg_element.values["attributes"]))
+            if "title" in svg_element.values:
+                print(svg_element.id)
+                print("title:", svg_element.values["title"])
+                print(svg_element.title)
+
+                if "label" in svg_element.values:
+                    print("label:", svg_element.values["label"])
+                if "desc" in svg_element.values:
+                    print("desc:", svg_element.values["desc"])
+                print(svg_element.values)
+
             if type(svg_element) is SVGElement:
                 if wall_color_code is None:
                     wall_color_code = svg_element.values.get("pagecolor")
