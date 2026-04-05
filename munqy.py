@@ -690,7 +690,8 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                  "central_item", "player_item", "items_to_remove", "items_to_set_kinematic",
                  "kinematic_items", "main_window", "main_view", "time", "tracing_item",
                  "trace_counter", "trace_prev_position", "actions_by_single_key",
-                 "actions_by_repeat_key", "dt_s", "timer_elapse", "mouse_hook_item")
+                 "actions_by_repeat_key", "dt_s", "timer_elapse", "mouse_hook_item",
+                 "body_properties_catalogue")
 
     trace_pen = QPen(Qt.white)
     trace_pen.setWidth(0)
@@ -731,6 +732,7 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         self.trace_prev_position = None
         self.actions_by_single_key = {}
         self.actions_by_repeat_key = {}
+        self.body_properties_catalogue = {}
         self.is_mouse_hook_on = False
         self.do_initial_setup()
         pen = QPen(Qt.white)
@@ -1062,7 +1064,40 @@ class MQSpace(pymunk.Space, QGraphicsScene):
             app.setOverrideCursor(Qt.CrossCursor)
             self.remove_item(self.mouse_hook_item)
 
+    PROPERTY_NAME_BY_CODE = \
+        { "d": ("density"        , float),
+          "e": ("elasticity"     , lambda s: float(s)/100),
+          "f": ("friction"       , lambda s: float(s)/100),
+          "l": ("liquid-damping" , lambda s: float(s)/100),
+          "t": ("body_type"      , lambda s: STATIC if s == 'S' else KINEMATIC if s == 'K' else DYNAMIC),
+          "a": ("is_airy"        , bool),
+          "x": ("reaction"       , int) }
+
+    DEFAULT_PROPERIES_CATALOGUE = { "HEAVY"       : "d2.5e10",
+                                    "LIGHT"       : "d0.5e10",
+                                    "ROCK"        : "HEAVY e50 f50",
+                                    "ICE"         : "HEAVY e50 f0",
+                                    "LIQUID"      : "HEAVY l95",
+                                    "LIGHT_ROCK"  : "LIGHT e50 f50",
+                                    "AIRY"        : "a1"
+                                    ""            : "ROCK"
+                                  }
+
+    def register_body_properties_in_catalogue(self, name, body_properties_string):
+        body_properties_dict = {}
+        for bp in body_properties_string.strip().split():
+            code = bp[0]
+            if code in MQSpace.PROPERTY_NAME_BY_CODE:
+                (property_name, func) = MQSpace.PROPERTY_NAME_BY_CODE[code]
+                body_properties_dict[property_name] = func(bp[1:])
+            else:
+                body_properties_dict.update(self.body_properties_catalogue[bp])
+        self.body_properties_catalogue[name] = body_properties_dict
+
     def load_level(self, svg_filename):
+
+        for (name, body_properties_string) in MQSpace.DEFAULT_PROPERIES_CATALOGUE.items():
+            self.register_body_properties_in_catalogue(name, body_properties_string)
 
         from xml.etree import ElementTree
         root = ElementTree.parse(svg_filename).getroot()
@@ -1070,6 +1105,12 @@ class MQSpace(pymunk.Space, QGraphicsScene):
         description = root.find(".//dc:description", ns).text
         print(description)
 
+        # for body_properties in description.split("\n"):
+        #     if not body_properties.startswith("#"):
+        #         (name, body_properties_string) = body_properties.split(":")
+        #         name = name.strip()
+        #         body_properties_string = body_properties_string.strip()
+        #         self.register_body_properties_in_catalogue(name, body_properties_string)
 
         from svgelements import SVG, SVGElement, Path, Rect, Text, Circle, Point, Desc
         s_pos = (0, 0)
@@ -1080,10 +1121,19 @@ class MQSpace(pymunk.Space, QGraphicsScene):
             #print(svg_element.id)
             if hasattr(svg_element, "title"):
                 print(svg_element.title)
+                body_properties_name = svg_element.title.strip()
+            else:
+                body_properties_name = ""
+
+            body_properties = self.body_properties_catalogue.get(body_properties_name,
+                                                                 self.body_properties_catalogue[""])
+
             #print(svg_element.label)
             #print(svg_element.description)
             #print(tuple(svg_element.values.keys()))
             #print(tuple(svg_element.values["attributes"]))
+
+
             if "title" in svg_element.values:
                 print(svg_element.id)
                 print("title:", svg_element.values["title"])
@@ -1114,13 +1164,14 @@ class MQSpace(pymunk.Space, QGraphicsScene):
                 is_liquid = svg_element.fill.alpha < 255
                 self.add_rect_item((svg_element.x+w/2, svg_element.y+h/2), 1*svg_element.rotation,
                                    size=(w, h),
-                                   #body_type=DYNAMIC if svg_element.id.startswith("m") else STATIC,
-                                       body_type=DYNAMIC if svg_element.id.startswith("m")
-                                                        else (KINEMATIC if is_liquid else STATIC),
-                                   density=0.25e11,
-                                   liquid_damping=(0.95 if is_liquid else None),
+                                   # #body_type=DYNAMIC if svg_element.id.startswith("m") else STATIC,
+                                   #     body_type=DYNAMIC if svg_element.id.startswith("m")
+                                   #                      else (KINEMATIC if is_liquid else STATIC),
+                                   # density=0.25e11,
+                                   # liquid_damping=(0.95 if is_liquid else None),
                                    brush=QBrush(QColor(svg_element.fill.red, svg_element.fill.green, svg_element.fill.blue,
-                                                       svg_element.fill.alpha)))
+                                                       svg_element.fill.alpha)),
+                                   **body_properties)
             elif isinstance(svg_element, Circle):
                 assert svg_element.rx == svg_element.ry
                 self.add_circle_item((svg_element.cx, svg_element.cy), 0,
